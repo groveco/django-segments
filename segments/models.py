@@ -15,9 +15,7 @@ class Segment(models.Model):
     name = models.CharField(max_length=128)
     definition = models.TextField()  # will hold raw SQL query
     created_date = models.DateTimeField(auto_now_add=True)
-
-    #created_by = models.ForeignKey(settings.AUTH_USER_MODEL)
-    #description = models.CharField(blank=true, null=True)
+    #description = models.CharField(blank=True, null=True)
 
     def has_member(self, user):
         return user in self.members.all()
@@ -54,6 +52,9 @@ class Segment(models.Model):
         """
         return get_user_model().objects.filter(id__in=self.member_set.all().values_list('user_id', flat=True))
 
+    def __unicode__(self):
+        return unicode(self.name)
+
 
 def do_refresh(sender, instance, created, **kwargs):
     """
@@ -71,6 +72,9 @@ class SegmentMembership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='segment_set')
     segment = models.ForeignKey(Segment, related_name='member_set')
 
+    class Meta:
+        unique_together = (('user', 'segment',),)
+
 
 class SegmentMixin(object):
 
@@ -80,3 +84,15 @@ class SegmentMixin(object):
 
     def is_member(self, segment):
         return segment.has_member(self)
+
+    def refresh_segments(self):
+        with transaction.atomic():
+            self.flush_segments()
+            memberships = []
+            for s in Segment.objects.all():
+                if self in s.execute_definition():
+                    memberships.append(SegmentMembership(user=self, segment=s))
+            SegmentMembership.objects.bulk_create(memberships)
+
+    def flush_segments(self):
+        SegmentMembership.objects.filter(user_id=self.id).delete()
