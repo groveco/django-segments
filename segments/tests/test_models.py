@@ -103,7 +103,7 @@ class TestMixin(TestCase):
         self.u = UserFactory()
         self.s = SegmentFactory()
 
-    def test_mixin(self):
+    def test_mixin_gives_fields(self):
         self.assertEqual(self.u.segments.count(), 1)
         self.assertEqual(self.u.segments.first(), self.s)
 
@@ -114,3 +114,14 @@ class TestMixin(TestCase):
         definition = 'select * from %s where id != %s' % (user_table(), self.u.id)
         s2 = SegmentFactory(definition=definition)
         self.assertFalse(self.u.is_member(s2))
+
+    def test_refresh_memberships(self):
+        u2 = UserFactory()
+        self.assertEqual(u2.segments.count(), 0)
+        u2.refresh_segments()
+        self.assertEqual(u2.segments.count(), 1)
+
+    def test_flush_segments(self):
+        self.assertEqual(SegmentMembership.objects.count(), 1)
+        self.u.flush_segments()
+        self.assertEqual(SegmentMembership.objects.count(), 0)

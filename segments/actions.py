@@ -5,5 +5,5 @@ def generate_refresh_action():
                 s.refresh()
             modeladmin.message_user(request, 'Refreshed %s shipments' % len(queryset))
 
-    refresh.short_description = 'Refresh these segments'
+    refresh.short_description = 'Refresh selected segments'
     return refresh

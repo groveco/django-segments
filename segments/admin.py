@@ -15,6 +15,15 @@ class SegmentAdmin(admin.ModelAdmin):
 
 class SegmentMembershipInline(admin.TabularInline):
     model = SegmentMembership
+
+    can_delete = False
     extra = 0
+    editable_fields = []
+
+    def get_readonly_fields(self, request, obj=None):
+        return ['user', 'segment']
+
+    def has_add_permission(self, request):
+        return False
 
 admin.site.register(Segment, SegmentAdmin)
