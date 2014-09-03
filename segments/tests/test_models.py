@@ -2,8 +2,8 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from segments.tests.factories import SegmentFactory, UserFactory, user_table
 from segments import app_settings
+from segments.models import SegmentMembership
 from mock import Mock
-
 
 
 class TestSegment(TestCase):
@@ -21,6 +21,12 @@ class TestSegment(TestCase):
             self.fail()
         except ValidationError:
             pass
+
+    def test_flush(self):
+        s = SegmentFactory()
+        self.assertEqual(1, SegmentMembership.objects.count())
+        s.flush()
+        self.assertEqual(0, SegmentMembership.objects.count())
 
     def test_segment_valid(self):
         s = SegmentFactory()
@@ -46,7 +52,11 @@ class TestSegment(TestCase):
         self.assertEqual(len(s), 2)
         s.refresh()
         self.assertEqual(len(s), 1)
-        s.definition = 'select * from %s where id = %s' % (user_table(), self.u.id)
+
+    def test_multiple_segments(self):
+        SegmentFactory()
+        s2 = SegmentFactory()
+        self.assertEqual(len(s2), 1)
 
     def segment_flushed_during_reset(self):
         """

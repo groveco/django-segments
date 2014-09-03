@@ -52,7 +52,7 @@ class Segment(models.Model):
         """
         The ORM is smart enough to issue this as one query with a subquery
         """
-        return get_user_model().objects.filter(id__in=self.member_set.all().values_list('id', flat=True))
+        return get_user_model().objects.filter(id__in=self.member_set.all().values_list('user_id', flat=True))
 
 
 def do_refresh(sender, instance, created, **kwargs):
@@ -76,7 +76,7 @@ class SegmentMixin(object):
 
     @property
     def segments(self):
-        return Segment.objects.filter(id__in=self.segment_set.all().values_list('id', flat=True))
+        return Segment.objects.filter(id__in=self.segment_set.all().values_list('segment_id', flat=True))
 
     def is_member(self, segment):
         return segment.has_member(self)
