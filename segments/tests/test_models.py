@@ -26,12 +26,12 @@ class TestSegment(TestCase):
     def test_user_belongs_to_segment(self):
         definition = 'select * from %s where id = %s' % (user_table(), self.u.id)
         s = SegmentFactory(definition=definition)
-        self.assertTrue(s.user_belongs(self.u))
+        self.assertTrue(s.has_member(self.u))
 
     def test_user_doesnt_belong_to_segment(self):
         definition = 'select * from %s where id != %s' % (user_table(), self.u.id)
         s = SegmentFactory(definition=definition)
-        self.assertFalse(s.user_belongs(self.u))
+        self.assertFalse(s.has_member(self.u))
 
     def test_segment_refresh(self):
         s = SegmentFactory()
@@ -66,8 +66,18 @@ class TestSegment(TestCase):
 
 class TestMixin(TestCase):
 
+    def setUp(self):
+        self.u = UserFactory()
+        self.s = SegmentFactory()
+
     def test_mixin(self):
-        u = UserFactory()
-        s = SegmentFactory()
-        self.assertEqual(u.segments.count(), 1)
-        self.assertEqual(u.segments.first(), s)
+        self.assertEqual(self.u.segments.count(), 1)
+        self.assertEqual(self.u.segments.first(), self.s)
+
+    def test_is_member(self):
+        self.assertTrue(self.u.is_member(self.s))
+
+    def test_is_not_member(self):
+        definition = 'select * from %s where id != %s' % (user_table(), self.u.id)
+        s2 = SegmentFactory(definition=definition)
+        self.assertFalse(self.u.is_member(s2))

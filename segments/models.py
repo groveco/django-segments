@@ -18,7 +18,7 @@ class Segment(models.Model):
     #created_by = models.ForeignKey(settings.AUTH_USER_MODEL)
     #description = models.CharField(blank=true, null=True)
 
-    def user_belongs(self, user):
+    def has_member(self, user):
         return user in self.members.all()
 
     def execute_definition(self):
@@ -26,8 +26,8 @@ class Segment(models.Model):
             return list(get_user_model().objects.db_manager(app_settings.SEGMENTS_CONNECTION_NAME).raw(self.definition))
         except InvalidQuery:
             raise ValidationError('SQL definition must include the primary key of the %s model' % settings.AUTH_USER_MODEL)
-        except DatabaseError:
-            raise ValidationError('Sql definition is not valid')
+        except DatabaseError as e:
+            raise ValidationError('Error while executing SQL definition: %s' % e)
         except Exception as e:
             raise ValidationError(e)
 
@@ -66,3 +66,6 @@ class SegmentMixin(object):
     @property
     def segments(self):
         return Segment.objects.filter(id__in=self.segment_set.all().values_list('id', flat=True))
+
+    def is_member(self, segment):
+        return segment.has_member(self)
