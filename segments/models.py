@@ -35,8 +35,8 @@ class Segment(models.Model):
         try:
             with transaction.atomic():
                 self.flush()
-                for u in self.execute_definition():
-                    SegmentMembership.objects.create(user=u, segment=self)
+                memberships = [SegmentMembership(user=u, segment=self) for u in self.execute_definition()]
+                SegmentMembership.objects.bulk_create(memberships)
         except DatabaseError as e:
             logger.exception(e)
 
