@@ -62,3 +62,12 @@ class TestSegment(TestCase):
 
         self.assertNotEqual(set(orig_member_ids), set(refreshed_member_ids))
         self.assertEqual(set(orig_members), set(refreshed_members))
+
+
+class TestMixin(TestCase):
+
+    def test_mixin(self):
+        u = UserFactory()
+        s = SegmentFactory()
+        self.assertEqual(u.segments.count(), 1)
+        self.assertEqual(u.segments.first(), s)

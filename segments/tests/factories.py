@@ -1,6 +1,6 @@
-from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from segments import models
+from segments.tests.models import SegmentableUser
 import factory
 
 
@@ -19,5 +19,5 @@ class SegmentFactory(factory.DjangoModelFactory):
 
 
 class UserFactory(factory.DjangoModelFactory):
-    FACTORY_FOR = User
+    FACTORY_FOR = SegmentableUser
     username = factory.Sequence(lambda n: 'name{0}'.format(n))

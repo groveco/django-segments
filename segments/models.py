@@ -49,12 +49,15 @@ class Segment(models.Model):
     @property
     def members(self):
         # There does not appear to be a way to do this in one query, without resorting to in-memory filtering
+        # This could alternatively be refactored into a ManyToMany field and all of these issues would go away
+        # Just like the Django permissionmixin does.
+        # But let's wait on that until we are 100% sure we don't need additional fields on the 'through' model
         return get_user_model().objects.filter(id__in=self.member_set.all().values_list('id', flat=True))
 
 
 class SegmentMembership(models.Model):
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='segment_set')
     segment = models.ForeignKey(Segment, related_name='member_set')
 
 
@@ -62,4 +65,4 @@ class SegmentMixin(object):
 
     @property
     def segments(self):
-        return SegmentMembership.objects.filter(user_id=self.id)
+        return Segment.objects.filter(id__in=self.segment_set.all().values_list('id', flat=True))

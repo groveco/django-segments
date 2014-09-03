@@ -14,6 +14,8 @@ DATABASES = {
 
 ROOT_URLCONF = 'segments.urls'
 
+AUTH_USER_MODEL = 'tests.SegmentableUser'
+
 TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.static",
     "django.core.context_processors.request",
@@ -33,7 +35,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     'segments',
-    'south'
+    'south',
+    'segments.tests'
 )
 
 AUTHENTICATION_BACKENDS = (
