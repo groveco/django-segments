@@ -8,11 +8,10 @@ logger = logging.getLogger(__name__)
 
 class Segment(models.Model):
 
-    name = 1
-    definition = 1
-    created_by = 1
-    created_date = 1
-    last_run = 1
+    name = models.CharField()
+    definition = models.TextField()  # will hold raw SQL query
+    created_by = models.ForeignKey(User)
+    created_date = models.DateTimeField(auto_created=True)
 
     def clean(self):
         try:
