@@ -36,7 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'segments',
     'south',
-    'segments.tests'
+    'segments.tests',
 )
 
 AUTHENTICATION_BACKENDS = (

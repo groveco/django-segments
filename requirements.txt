@@ -1,3 +1,4 @@
 Django>=1.5,<=1.6.9
 factory-boy==2.4.1
 South==0.8.4
+mock==1.0.1

@@ -1,6 +1,9 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from segments.tests.factories import SegmentFactory, UserFactory, user_table
+from segments import app_settings
+from mock import Mock
+
 
 
 class TestSegment(TestCase):
@@ -62,6 +65,26 @@ class TestSegment(TestCase):
 
         self.assertNotEqual(set(orig_member_ids), set(refreshed_member_ids))
         self.assertEqual(set(orig_members), set(refreshed_members))
+
+    def test_refresh_after_create(self):
+        s = SegmentFactory.build()
+        s.refresh = Mock()
+        s.save()
+        s.refresh.assert_called_with()
+
+    def test_refresh_after_save(self):
+        s = SegmentFactory()
+        s.refresh = Mock()
+        s.save()
+        s.refresh.assert_called_with()
+
+    def test_refresh_not_called_after_save_if_disabled(self):
+        app_settings.SEGMENTS_REFRESH_ON_SAVE = False
+        s = SegmentFactory()
+        s.refresh = Mock()
+        s.save()
+        self.assertEqual(s.refresh.call_count, 0)
+        app_settings.SEGMENTS_REFRESH_ON_SAVE = True
 
 
 class TestMixin(TestCase):

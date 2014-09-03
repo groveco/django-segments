@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db.models.query_utils import InvalidQuery
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.db.models import signals
 import app_settings
 import logging
 
@@ -48,11 +49,21 @@ class Segment(models.Model):
 
     @property
     def members(self):
-        # There does not appear to be a way to do this in one query, without resorting to in-memory filtering
-        # This could alternatively be refactored into a ManyToMany field and all of these issues would go away
-        # Just like the Django permissionmixin does.
-        # But let's wait on that until we are 100% sure we don't need additional fields on the 'through' model
+        """
+        The ORM is smart enough to issue this as one query with a subquery
+        """
         return get_user_model().objects.filter(id__in=self.member_set.all().values_list('id', flat=True))
+
+
+def do_refresh(sender, instance, created, **kwargs):
+    """
+    Always refresh the segment if a new segment is being created.
+    However if this is just a save, only refresh if the option is set. Some consumers may want to refresh only
+    according to a cron schedule..
+    """
+    if created or app_settings.SEGMENTS_REFRESH_ON_SAVE:
+        instance.refresh()
+signals.post_save.connect(do_refresh, sender=Segment)
 
 
 class SegmentMembership(models.Model):
