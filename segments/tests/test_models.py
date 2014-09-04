@@ -1,8 +1,7 @@
 from django.test import TestCase
-from django.core.exceptions import ValidationError
 from segments.tests.factories import SegmentFactory, UserFactory, user_table
 from segments import app_settings
-from segments.models import SegmentMembership
+from segments.models import SegmentMembership, SegmentExecutionError
 from mock import Mock
 
 
@@ -16,10 +15,11 @@ class TestSegment(TestCase):
         self.assertEqual(len(s), 1)
 
     def test_segment_invalid(self):
+        s = SegmentFactory(definition='fail')
         try:
-            SegmentFactory(definition='fail')
+            s.refresh()
             self.fail()
-        except ValidationError:
+        except SegmentExecutionError:
             pass
 
     def test_flush(self):

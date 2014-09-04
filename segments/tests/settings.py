@@ -37,6 +37,7 @@ INSTALLED_APPS = (
     'segments',
     'south',
     'segments.tests',
+    'celery'
 )
 
 AUTHENTICATION_BACKENDS = (

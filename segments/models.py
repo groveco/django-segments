@@ -10,6 +10,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class SegmentExecutionError(Exception): pass
+
 class Segment(models.Model):
 
     name = models.CharField(max_length=128)
@@ -20,15 +22,21 @@ class Segment(models.Model):
     def has_member(self, user):
         return user in self.members.all()
 
+    def clean(self):
+        try:
+            self.execute_definition()
+        except SegmentExecutionError as e:
+            raise ValidationError(e)
+
     def execute_definition(self):
         try:
             return list(get_user_model().objects.db_manager(app_settings.SEGMENTS_CONNECTION_NAME).raw(self.definition))
         except InvalidQuery:
-            raise ValidationError('SQL definition must include the primary key of the %s model' % settings.AUTH_USER_MODEL)
+            raise SegmentExecutionError('SQL definition must include the primary key of the %s model' % settings.AUTH_USER_MODEL)
         except DatabaseError as e:
-            raise ValidationError('Error while executing SQL definition: %s' % e)
+            raise SegmentExecutionError('Error while executing SQL definition: %s' % e)
         except Exception as e:
-            raise ValidationError(e)
+            raise SegmentExecutionError(e)
 
     def refresh(self):
         try:
@@ -36,8 +44,9 @@ class Segment(models.Model):
                 self.flush()
                 memberships = [SegmentMembership(user=u, segment=self) for u in self.execute_definition()]
                 SegmentMembership.objects.bulk_create(memberships)
-        except DatabaseError as e:
-            logger.exception(e)
+        except SegmentExecutionError as e:
+            logger.exception("SEGMENTS: Error refreshing segment %s (id: %s): %s" % (self.name, self.id, e))
+            raise e
 
     def flush(self):
         SegmentMembership.objects.filter(segment=self).delete()
@@ -63,7 +72,10 @@ def do_refresh(sender, instance, created, **kwargs):
     according to a cron schedule..
     """
     if created or app_settings.SEGMENTS_REFRESH_ON_SAVE:
-        instance.refresh()
+        try:
+            instance.refresh()
+        except SegmentExecutionError:
+            pass  # errors handled upstream
 signals.post_save.connect(do_refresh, sender=Segment)
 
 
