@@ -1,6 +1,6 @@
 from django.test import TestCase
-from segments.tasks import refresh_segments
-from segments.tests.factories import SegmentFactory
+from segments.tasks import refresh_segments, refresh_segment
+from segments.tests.factories import SegmentFactory, UserFactory
 from mock import Mock, patch
 
 
@@ -33,3 +33,17 @@ class TestTasks(TestCase):
         refresh_segments()
 
         self.assertEqual(s1.refresh.call_count, 1)
+
+    def test_refresh_existing_segment(self):
+        UserFactory()
+        s = SegmentFactory()
+        UserFactory()
+        self.assertEqual(len(s), 1)
+        refresh_segment(s.id)
+        self.assertEqual(len(s), 2)
+
+    # Just making sure the logging code works
+    def test_refresh_non_existing_segment(self):
+        s = SegmentFactory()
+        refresh_segment(s.id + 1)  #bad ID
+        pass

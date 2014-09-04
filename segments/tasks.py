@@ -25,3 +25,11 @@ def refresh_segments():
     end = time()
     logger.info("SEGMENTS: Successfully refreshed %s segments. Failed to refresh %s segments. Complete in %s seconds"
                 % (len(segments)-len(failed), len(failed), end - start))
+
+@task
+def refresh_segment(segment_id):
+    try:
+        s = Segment.objects.get(pk=segment_id)
+        s.refresh()
+    except Segment.DoesNotExist:
+        logger.exception("SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id)
