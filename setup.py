@@ -20,7 +20,7 @@ setup(
     keywords = "django segments queries segmentation marketing groups sql",
     url = "https://github.com/epantry/django-segments",
     packages=['segments'],
-    long_description=read('README.rst'),
+    long_description=read('readme.rst'),
     classifiers=[
         "Topic :: Utilities",
     ],

@@ -115,7 +115,7 @@ class SegmentMixin(object):
     def is_member(self, segment):
         return segment.has_member(self)
 
-    #This is just to horrible to even make available. I should call it "shoot_database_in_head"
+    #This is just too horrible to even make available. I should call it "shoot_database_in_head()"
     # @property
     # def segments_live(self):
     #     return [s for s in Segment.objects.all() if s.has_member_live(self)]
