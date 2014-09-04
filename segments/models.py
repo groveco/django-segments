@@ -22,6 +22,28 @@ class Segment(models.Model):
     def has_member(self, user):
         return user in self.members.all()
 
+    @property
+    def members(self):
+        """
+        The ORM is smart enough to issue this as one query with a subquery
+        """
+        return get_user_model().objects.filter(id__in=self.member_set.all().values_list('user_id', flat=True))
+
+    def has_member_live(self, user):
+        """
+        This issues the SQL synchronously to assess whether someone is a member of this segment.
+        As with all 'live' methods in this library, these should be used at your own risk.
+        They can be potentially very expensive, perform no caching, and perform no validation on the SQL.
+        """
+        return user in self.members_live
+
+    @property
+    def members_live(self):
+        """
+        Watch out! Executes live SQL with no safeguards.
+        """
+        return get_user_model().objects.db_manager(app_settings.SEGMENTS_CONNECTION_NAME).raw(self.definition)
+
     def clean(self):
         try:
             self.execute_definition()
@@ -30,7 +52,10 @@ class Segment(models.Model):
 
     def execute_definition(self):
         try:
-            return list(get_user_model().objects.db_manager(app_settings.SEGMENTS_CONNECTION_NAME).raw(self.definition))
+            # Warning: This could get pretty big if the query is returning a lot of users
+            # Calling list() on the queryset executes it (makes it non-lazy). This is necessary though, in order
+            # to verify that the underlying SQL is in fact valid.
+            return list(self.members_live)
         except InvalidQuery:
             raise SegmentExecutionError('SQL definition must include the primary key of the %s model' % settings.AUTH_USER_MODEL)
         except DatabaseError as e:
@@ -53,13 +78,6 @@ class Segment(models.Model):
 
     def __len__(self):
         return self.members.count()
-
-    @property
-    def members(self):
-        """
-        The ORM is smart enough to issue this as one query with a subquery
-        """
-        return get_user_model().objects.filter(id__in=self.member_set.all().values_list('user_id', flat=True))
 
     def __unicode__(self):
         return unicode(self.name)
@@ -96,6 +114,17 @@ class SegmentMixin(object):
 
     def is_member(self, segment):
         return segment.has_member(self)
+
+    #This is just to horrible to even make available. I should call it "shoot_database_in_head"
+    # @property
+    # def segments_live(self):
+    #     return [s for s in Segment.objects.all() if s.has_member_live(self)]
+
+    def is_member_live(self, segment):
+        """
+        Watch out! Executes live SQL with no safeguards.
+        """
+        return segment.has_member_live(self)
 
     def refresh_segments(self):
         with transaction.atomic():

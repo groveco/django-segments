@@ -42,6 +42,12 @@ class TestSegment(TestCase):
         s = SegmentFactory(definition=definition)
         self.assertFalse(s.has_member(self.u))
 
+    def test_user_belongs_to_segment_live(self):
+        s = SegmentFactory()
+        u2 = UserFactory()
+        self.assertFalse(s.has_member(u2))
+        self.assertTrue(s.has_member_live(u2))
+
     def test_segment_refresh(self):
         s = SegmentFactory()
         UserFactory()
@@ -109,6 +115,11 @@ class TestMixin(TestCase):
 
     def test_is_member(self):
         self.assertTrue(self.u.is_member(self.s))
+
+    def test_is_member_live(self):
+        u2 = UserFactory()
+        self.assertFalse(u2.is_member(self.s))
+        self.assertTrue(u2.is_member_live(self.s))
 
     def test_is_not_member(self):
         definition = 'select * from %s where id != %s' % (user_table(), self.u.id)
