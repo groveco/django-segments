@@ -1,5 +1,5 @@
 from segments.models import Segment, SegmentExecutionError
-from celery.task import task
+from celery import task
 from time import time
 import logging
 
@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 @task
 def refresh_segments():
+    """Celery task to refresh all segments, with timing information. Writes to the logger."""
     start = time()
     failed = []
     segments = list(Segment.objects.all())
@@ -28,6 +29,7 @@ def refresh_segments():
 
 @task
 def refresh_segment(segment_id):
+    """Celery task to refresh an individual Segment."""
     try:
         s = Segment.objects.get(pk=segment_id)
         s.refresh()

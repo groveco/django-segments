@@ -12,7 +12,7 @@ DATABASES = {
     }
 }
 
-ROOT_URLCONF = 'segments.urls'
+ROOT_URLCONF = 'segments.tests.urls'
 
 AUTH_USER_MODEL = 'tests.SegmentableUser'
 
