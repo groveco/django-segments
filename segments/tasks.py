@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@task
+@task(name='segments_refresh')
 def refresh_segments():
     """Celery task to refresh all segments, with timing information. Writes to the logger."""
     start = time()
@@ -27,7 +27,8 @@ def refresh_segments():
     logger.info("SEGMENTS: Successfully refreshed %s segments. Failed to refresh %s segments. Complete in %s seconds"
                 % (len(segments)-len(failed), len(failed), end - start))
 
-@task
+
+@task(name='segment_refresh')
 def refresh_segment(segment_id):
     """Celery task to refresh an individual Segment."""
     try:

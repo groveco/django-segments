@@ -4,7 +4,7 @@ from django.db.models.query_utils import InvalidQuery
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import signals
-import app_settings
+from segments import app_settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,6 @@ class Segment(models.Model):
     name = models.CharField(max_length=128)
     definition = models.TextField()  # will hold raw SQL query
     created_date = models.DateTimeField(auto_now_add=True)
-    #description = models.CharField(blank=True, null=True)
 
     def has_member(self, user):
         """
@@ -60,9 +59,10 @@ class Segment(models.Model):
         """
         Live version of .members. Issue SQL synchronously and return a raw queryset of all members.
 
-        Refreshing a segment ultimately proxies to this method.
+        Refreshing a segment ultimately proxies to this method. This is the only method that makes use of
+        the SEGMENTS_EXEC_CONNECTION.
         """
-        return get_user_model().objects.db_manager(app_settings.SEGMENTS_CONNECTION_NAME).raw(self.definition)
+        return get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(self.definition)
 
     def clean(self):
         """Validate that the definition SQL will execute. Needed for proper error handling in the Django admin."""
@@ -118,11 +118,15 @@ def do_refresh(sender, instance, created, **kwargs):
     is set. Some consumers may want to refresh only according to a cron schedule (ie. asynchronously) instead of on
     every segment save.
     """
+    from segments.tasks import refresh_segment
     if created or app_settings.SEGMENTS_REFRESH_ON_SAVE:
-        try:
-            instance.refresh()
-        except SegmentExecutionError:
-            pass  # errors handled upstream
+        if app_settings.SEGMENTS_REFRESH_ASYNC:
+            refresh_segment.delay(instance.id)
+        else:
+            try:
+                instance.refresh()
+            except SegmentExecutionError:
+                pass  # errors handled upstream
 signals.post_save.connect(do_refresh, sender=Segment)
 
 

@@ -13,10 +13,6 @@ class SegmentFactory(factory.DjangoModelFactory):
     name = "Segment 1"
     definition = "select * from %s" % user_table()
 
-    #@classmethod
-    #def _after_postgeneration(cls, obj, create, results=None):
-    #    obj.refresh()
-
 
 class UserFactory(factory.DjangoModelFactory):
     FACTORY_FOR = SegmentableUser

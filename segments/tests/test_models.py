@@ -2,7 +2,7 @@ from django.test import TestCase
 from segments.tests.factories import SegmentFactory, UserFactory, user_table
 from segments import app_settings
 from segments.models import SegmentMembership, SegmentExecutionError
-from mock import Mock
+from mock import Mock, patch
 
 
 class TestSegment(TestCase):
@@ -92,7 +92,7 @@ class TestSegment(TestCase):
         s = SegmentFactory()
         s.refresh = Mock()
         s.save()
-        s.refresh.assert_called_with()
+        self.assertEqual(s.refresh.call_count, 1)
 
     def test_refresh_not_called_after_save_if_disabled(self):
         app_settings.SEGMENTS_REFRESH_ON_SAVE = False
@@ -101,6 +101,31 @@ class TestSegment(TestCase):
         s.save()
         self.assertEqual(s.refresh.call_count, 0)
         app_settings.SEGMENTS_REFRESH_ON_SAVE = True
+
+    @patch('segments.tasks.refresh_segment')
+    def test_refresh_async_called_if_enabled(self, mocked_refresh):
+        mocked_refresh.delay = Mock()
+        app_settings.SEGMENTS_REFRESH_ASYNC = True
+        SegmentFactory()
+        self.assertEqual(mocked_refresh.delay.call_count, 1)
+        app_settings.SEGMENTS_REFRESH_ASYNC = False
+
+    def test_multiple_dbs(self):
+        """
+        This seems crazy, but it's the only way to get test coverage on this in the test environment.
+        For instance Segments is using a SEGMENTS_CONNECT_NAME of 'readonly' vs. 'default' everywhere else
+        in the application.
+
+        There's no way to actually set that up with a sqlite test DB, so we simulate it here by explicitly
+        creating a "mirror" user object directly in the second databse.
+        """
+        from segments.tests.models import SegmentableUser
+        app_settings.SEGMENTS_EXEC_CONNECTION = 'other'
+        SegmentableUser.objects.using(app_settings.SEGMENTS_EXEC_CONNECTION).create()
+        s = SegmentFactory()
+        s.refresh()
+        self.assertEqual(s.members.count(), 1)
+        app_settings.SEGMENTS_EXEC_CONNECTION = 'default'
 
 
 class TestMixin(TestCase):

@@ -5,12 +5,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
+    },
+    'other': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
     }
 }
+
+DATABASE_ROUTERS = ['segments.router.SegmentsRouter',]
 
 ROOT_URLCONF = 'segments.tests.urls'
 
