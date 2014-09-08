@@ -19,7 +19,7 @@ class SegmentAdmin(admin.ModelAdmin):
     def refresh(self, request, queryset):
         for s in queryset:
             s.refresh()
-        self.message_user(request, 'Refreshed %s shipments' % len(queryset))
+        self.message_user(request, 'Refreshed %s segments.' % len(queryset))
 
 
 class SegmentMembershipInline(admin.TabularInline):

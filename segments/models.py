@@ -43,7 +43,7 @@ class Segment(models.Model):
         """
         Helper method. Return a bool indicating whether the user is a member of this segment.
         """
-        return user in self.members.all()
+        return self.members.filter(id=user.id).exists()
 
     @property
     def members(self):
