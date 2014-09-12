@@ -1,46 +1,56 @@
 django-segments allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries.
 
-What you do with those segments is up to you.
+What you do with those segments is up to you. Create a segment, and use the mixin with your user class::
 
-We use it for targeting marketing offers at certain users, building mailing lists, identifying "good" vs. "bad" customers, and quickly adding all sorts of properties on user records into the django admin without having to write or deploy code.
+    from django.contrib.auth.models import AbstractUser
+    from segments.models import SegmentMixin
+    
+    class SegmentableUser(AbstractUser, SegmentMixin):
+        pass
 
-For instance:
+    ...
+    
+    u = SegmentableUser()
+    s = Segment(definition = "select * from %s" % SegmentableUser._meta.db_table)
+    print u.is_member(s)  # "True"
 
-```
-class Offer(models.Model)
-    priority = models.IntegerField()
-    discount = models.DecimalField()
-    segment = models.ForeignKey(Segment)
+You can use it for targeting marketing offers at certain users, building mailing lists, identifying "good" vs. "bad" customers, and quickly adding all sorts of properties on user records into the django admin without having to write or deploy code.
 
-    class Meta:
-        ordering = ('priority', )
+For instance::
 
-    @classmethod
-    def get_offer_for_user(cls, user)
-        for offer in cls.objects.all():
-            if offer.segment.has_member(user):
-                return offer
-```
-
-Comes with a handy Mixin so you can use with your own custom user class:
-
-```
-from django.contrib.auth.models import AbstractUser
-from segments.models import SegmentMixin
-
-class SegmentableUser(AbstractUser, SegmentMixin):
-    pass
-
-...
-
-u = SegmentableUser()
-s = Segment(definition = "select * from %s" % SegmentableUser._meta.db_table)
-print u.is_member(s)  # "True"
-```
-
-Full API:
-
-segments.models.Segment:
+    class Offer(models.Model)
+        priority = models.IntegerField()
+        discount = models.DecimalField()
+        segment = models.ForeignKey(Segment)
+    
+        class Meta:
+            ordering = ('priority', )
+    
+        @classmethod
+        def get_offer_for_user(cls, user)
+            for offer in cls.objects.all():
+                if offer.segment.has_member(user):
+                    return offer
 
 
-segments.models.SegmentMixin:
+The code is thoroughly documented and tested.
+
+To use, first install (pypi package coming soon)::
+
+    pip install -e git+https://github.com/epantry/django-segments#egg=segments
+
+Then add the following to your settings.py::
+
+    INSTALLED_APPS = (
+        ...
+        'segments',
+    )
+    
+    # This is the name of the connection Segments will use to evaluate segment SQL
+    # Recommended to set this to a readonly DB role. Defaults to 'default'.
+    SEGMENTS_EXEC_CONNECTION = 'readonly'
+    
+    # If you are using a readonly DB name, you must add the DB router.
+    DATABASE_ROUTERS = ['segments.router.SegmentsRouter',]
+    
+You're ready to go!
