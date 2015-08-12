@@ -35,7 +35,7 @@ class Segment(models.Model):
     """
 
     name = models.CharField(max_length=128)
-    definition = models.TextField()  # will hold raw SQL query
+    definition = models.TextField(help_text="SQL query that returns IDs of users in the segment.")  # will hold raw SQL query
     created_date = models.DateTimeField(auto_now_add=True)
 
     def has_member(self, user):
