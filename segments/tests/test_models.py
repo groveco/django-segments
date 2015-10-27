@@ -48,6 +48,13 @@ class TestSegment(TestCase):
         self.assertFalse(s.has_member(u2))
         self.assertTrue(s.has_member_live(u2))
 
+    def test_has_members_live_saves_changes(self):
+        s = SegmentFactory()
+        u2 = UserFactory()
+        self.assertFalse(s.has_member(u2))
+        self.assertTrue(s.has_member_live(u2))
+        self.assertTrue(s.has_member(u2))
+
     def test_segment_refresh(self):
         s = SegmentFactory()
         UserFactory()
@@ -156,8 +163,3 @@ class TestMixin(TestCase):
         self.assertEqual(u2.segments.count(), 0)
         u2.refresh_segments()
         self.assertEqual(u2.segments.count(), 1)
-
-    def test_flush_segments(self):
-        self.assertEqual(SegmentMembership.objects.count(), 1)
-        self.u.flush_segments()
-        self.assertEqual(SegmentMembership.objects.count(), 0)

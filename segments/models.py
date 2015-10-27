@@ -51,16 +51,32 @@ class Segment(models.Model):
         return get_user_model().objects.filter(id__in=self.member_set.all().values_list('user_id', flat=True))
 
     def has_member_live(self, user):
-        """Live version of helper method. Return a bool indicating whether the user is a member of this segment."""
-        return user in self.members_live
+        """
+        Live version of helper method. Return a bool indicating whether the user is a member of this segment.
+
+        Also updates the computed segment membership accordingly.
+        """
+        exists = bool(list(get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(self._wrap_sql_for_user(user))))
+        if exists:
+            SegmentMembership.objects.get_or_create(user=user, segment=self)
+        else:
+            SegmentMembership.filter(user=user, segment=self).delete()
+        return exists
+
+    def _wrap_sql_for_user(self, user):
+        """
+        Wraps the segment definition SQL to return a boolean
+        :param user:
+        :return:
+        """
+        return 'SELECT id FROM (%s) as temp WHERE id=%s' % (self.definition, user.id)
 
     @property
     def members_live(self):
         """
         Live version of .members. Issue SQL synchronously and return a raw queryset of all members.
 
-        Refreshing a segment ultimately proxies to this method. This is the only method that makes use of
-        the SEGMENTS_EXEC_CONNECTION.
+        Refreshing a segment ultimately proxies to this method.
         """
         return get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(self.definition)
 
@@ -185,13 +201,5 @@ class SegmentMixin(object):
         Note that this executes the SQL of all segments and can be very slow. Not recommended for use
         """
         with transaction.atomic():
-            self.flush_segments()
-            memberships = []
             for s in Segment.objects.all():
-                if self in s.execute_definition():
-                    memberships.append(SegmentMembership(user=self, segment=s))
-            SegmentMembership.objects.bulk_create(memberships)
-
-    def flush_segments(self):
-        """Removes all SegmentMembership records for the user."""
-        SegmentMembership.objects.filter(user_id=self.id).delete()
+                s.has_member_live(self)

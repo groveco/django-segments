@@ -37,7 +37,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     'segments',
-    'south',
     'segments.tests',
     'celery'
 )
