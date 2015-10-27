@@ -156,8 +156,3 @@ class TestMixin(TestCase):
         self.assertEqual(u2.segments.count(), 0)
         u2.refresh_segments()
         self.assertEqual(u2.segments.count(), 1)
-
-    def test_flush_segments(self):
-        self.assertEqual(SegmentMembership.objects.count(), 1)
-        self.u.flush_segments()
-        self.assertEqual(SegmentMembership.objects.count(), 0)
