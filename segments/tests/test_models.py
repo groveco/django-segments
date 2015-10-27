@@ -48,6 +48,13 @@ class TestSegment(TestCase):
         self.assertFalse(s.has_member(u2))
         self.assertTrue(s.has_member_live(u2))
 
+    def test_has_members_live_saves_changes(self):
+        s = SegmentFactory()
+        u2 = UserFactory()
+        self.assertFalse(s.has_member(u2))
+        self.assertTrue(s.has_member_live(u2))
+        self.assertTrue(s.has_member(u2))
+
     def test_segment_refresh(self):
         s = SegmentFactory()
         UserFactory()
