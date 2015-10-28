@@ -15,9 +15,8 @@ class TestSegment(TestCase):
         self.assertEqual(len(s), 1)
 
     def test_segment_invalid(self):
-        s = SegmentFactory(definition='fail')
         try:
-            s.refresh()
+            s = SegmentFactory(definition='fail')
             self.fail()
         except SegmentExecutionError:
             pass
@@ -25,12 +24,12 @@ class TestSegment(TestCase):
     def test_flush(self):
         s = SegmentFactory()
         self.assertEqual(1, SegmentMembership.objects.count())
-        s.flush()
+        s._flush()
         self.assertEqual(0, SegmentMembership.objects.count())
 
     def test_segment_valid(self):
         s = SegmentFactory()
-        self.assertEqual(len([u for u in s.execute_definition()]), 1)
+        self.assertEqual(len([u for u in s._execute_raw_user_query()]), 1)
 
     def test_user_belongs_to_segment(self):
         definition = 'select * from %s where id = %s' % (user_table(), self.u.id)
@@ -124,7 +123,7 @@ class TestSegment(TestCase):
         in the application.
 
         There's no way to actually set that up with a sqlite test DB, so we simulate it here by explicitly
-        creating a "mirror" user object directly in the second databse.
+        creating a "mirror" user object directly in the second database.
         """
         from segments.tests.models import SegmentableUser
         app_settings.SEGMENTS_EXEC_CONNECTION = 'other'
@@ -133,6 +132,63 @@ class TestSegment(TestCase):
         s.refresh()
         self.assertEqual(s.members.count(), 1)
         app_settings.SEGMENTS_EXEC_CONNECTION = 'default'
+
+
+class TestSegmentStatic(TestCase):
+
+    def test_parse_static_ids(self):
+        s = SegmentFactory(static_ids="12\na\n2.0\n1 \n  234234")
+        self.assertListEqual(s._parsed_static_ids, [12,1,234234])
+
+    def test_invalid_id_in_static_ids(self):
+        s = SegmentFactory(static_ids="10")
+        self.assertEqual(len(list(s.members_live)), 0)
+
+    def test_dedupes_when_user_present_in_static_and_dynamic(self):
+        u = UserFactory()
+        definition = 'select * from %s where id = %s' % (user_table(), u.id)
+        s = SegmentFactory(definition=definition, static_ids='%s' % u.id)
+        self.assertEqual(len(list(s.members_live)), 1)
+
+    def test_static_only_members(self):
+        u = UserFactory()
+        s = SegmentFactory(static_ids='%s' % u.id, definition=None)
+        self.assertEqual(len(s), 1)
+
+    def test_static_only_members_live(self):
+        u = UserFactory()
+        s = SegmentFactory.build(static_ids='%s' % u.id, definition=None)
+        self.assertEqual(len(list(s.members_live)), 1)
+
+    def test_static_only_has_member(self):
+        u = UserFactory()
+        s = SegmentFactory(static_ids='%s' % u.id, definition=None)
+        self.assertTrue(s.has_member(u))
+
+    def test_static_only_has_member_live(self):
+        u = UserFactory()
+        s = SegmentFactory.build(static_ids='%s' % u.id, definition=None)
+        self.assertTrue(s.has_member_live(u))
+
+    def test_static_and_dynamic_members(self):
+        u = UserFactory()
+        s = SegmentFactory(static_ids='foo\n123123')
+        self.assertEqual(len(s), 1)
+
+    def test_static_and_dynamic_members_live(self):
+        u = UserFactory()
+        s = SegmentFactory.build(static_ids='foo\n123123')
+        self.assertEqual(len(list(s.members_live)), 1)
+
+    def test_static_and_dynamic_has_member(self):
+        u = UserFactory()
+        s = SegmentFactory(static_ids='foo\n123123')
+        self.assertTrue(s.has_member(u))
+
+    def test_static_and_dynamic_has_member_live(self):
+        u = UserFactory()
+        s = SegmentFactory.build(static_ids='foo\n123123')
+        self.assertTrue(s.has_member_live(u))
 
 
 class TestMixin(TestCase):

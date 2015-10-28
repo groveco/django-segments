@@ -1,4 +1,5 @@
-from django.db import models, transaction, DatabaseError
+from functools import wraps
+from django.db import models, transaction, DatabaseError, OperationalError
 from django.core.exceptions import ValidationError
 from django.db.models.query_utils import InvalidQuery
 from django.contrib.auth import get_user_model
@@ -17,6 +18,35 @@ class SegmentExecutionError(Exception):
     pass
 
 
+class SegmentDefinitionUnescaped(Exception):
+    """
+    Raised when an unescaped percent sign is encountered
+    """
+    pass
+
+
+def live_sql(fn):
+    """
+    Function decorator for any segment methods that will execute user SQL (segment.definition). Userspace SQL can
+    fail in any number of ways and this standardizes the error handling. This is necessary (vs. just making the actual
+    execution of sql a class method) because most of the SQL access is done through RawQuerySets, which are lazy. So
+    the execution doesn't necessarily fail when a RawQuerySet is created, but can happen much later in a function, when
+    the results are reified. So we just wrap the whole darn function to capture any SQL errors.
+    """
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except InvalidQuery:
+            raise SegmentExecutionError('SQL definition must include the primary key of the %s model'
+                                        % settings.AUTH_USER_MODEL)
+        except (DatabaseError, OperationalError) as e:
+            raise SegmentExecutionError('Error while executing SQL definition: %s' % e)
+        except Exception as e:
+            raise SegmentExecutionError(e)
+    return _wrapper
+
+
 class Segment(models.Model):
 
     """
@@ -28,21 +58,49 @@ class Segment(models.Model):
     carry the following caveat:
 
     LIVE METHOD --  Use at your own risk. These methods perform the equivalent function of their non-live counterparts
-    and are postfixed with _live. They execute the underlying segment definition SQL synchronously and perform no
+    and are post-fixed with _live. They execute the underlying segment definition SQL synchronously and perform no
     validation on that SQL. Therefore they can be slow, and they can fail. Finally because this is live,
     and most of the time consuming code will (presumably) be using the non-live version of these methods, mysterious
     bugs can crop of if code makes the assumption that the normal and _live version of these functions are equivalent.
     """
 
     name = models.CharField(max_length=128)
-    definition = models.TextField(help_text="SQL query that returns IDs of users in the segment.")  # will hold raw SQL query
+    definition = models.TextField(help_text="SQL query returning IDs of users in the segment.", blank=True, null=True)
+    static_ids = models.TextField(help_text="Newline-delimited list of IDs in the segment", blank=True, null=True)
     created_date = models.DateTimeField(auto_now_add=True)
+
+    ############
+    # Public API
+    ############
 
     def has_member(self, user):
         """
         Helper method. Return a bool indicating whether the user is a member of this segment.
         """
+        if not user.id:
+            return False
         return self.members.filter(id=user.id).exists()
+
+    @live_sql
+    def has_member_live(self, user):
+        """
+        Live version of helper method. Return a bool indicating whether the user is a member of this segment.
+
+        Also updates the computed segment membership accordingly.
+        """
+        if not user.id:
+            return False
+        exists = False
+        if self.definition:
+            exists = bool(list(self._execute_raw_user_query(user=user)))
+        if self.static_ids:
+            exists = exists or user.id in self._parsed_static_ids
+        if self.pk:  # Verify that segment is saved
+            if exists:
+                SegmentMembership.objects.get_or_create(user=user, segment=self)
+            else:
+                SegmentMembership.filter(user=user, segment=self).delete()
+        return exists
 
     @property
     def members(self):
@@ -50,71 +108,84 @@ class Segment(models.Model):
         # The ORM is smart enough to issue this as one query with a subquery
         return get_user_model().objects.filter(id__in=self.member_set.all().values_list('user_id', flat=True))
 
-    def has_member_live(self, user):
-        """
-        Live version of helper method. Return a bool indicating whether the user is a member of this segment.
-
-        Also updates the computed segment membership accordingly.
-        """
-        exists = bool(list(get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(self._wrap_sql_for_user(user))))
-        if exists:
-            SegmentMembership.objects.get_or_create(user=user, segment=self)
-        else:
-            SegmentMembership.filter(user=user, segment=self).delete()
-        return exists
-
-    def _wrap_sql_for_user(self, user):
-        """
-        Wraps the segment definition SQL to return a boolean
-        :param user:
-        :return:
-        """
-        return 'SELECT id FROM (%s) as temp WHERE id=%s' % (self.definition, user.id)
-
     @property
+    @live_sql
     def members_live(self):
         """
         Live version of .members. Issue SQL synchronously and return a raw queryset of all members.
 
         Refreshing a segment ultimately proxies to this method.
         """
-        return get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(self.definition)
+
+        if self.definition and not self.static_ids:
+            return self._execute_raw_user_query()
+
+        if self.static_ids and not self.definition:
+            return get_user_model().objects.filter(id__in=self._parsed_static_ids)
+
+        if self.static_ids and self.definition:  # If there are SQL users and static users, dedupe and retrieve
+            from_sql_ids = [u.id for u in self._execute_raw_user_query()]
+            distinct_users = set(from_sql_ids + self._parsed_static_ids)
+            return get_user_model().objects.filter(id__in=distinct_users)
+
+    @live_sql
+    def refresh(self):
+        """Clear out old membership information, run the definition SQL, and create new SegmentMembership entries."""
+        with transaction.atomic():
+            memberships = []
+            if self.definition:
+                memberships += [u.id for u in self._execute_raw_user_query()]
+            if self.static_ids:
+                memberships += self._parsed_static_ids
+            memberships = [SegmentMembership(user_id=uid, segment=self) for uid in set(memberships)]
+            self._flush()
+            SegmentMembership.objects.bulk_create(memberships)
+
+    #################
+    # Private methods
+    #################
+
+    def _execute_raw_user_query(self, user=None):
+        """
+        Helper that returns a RawQuerySet of user objects.
+        """
+        return get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(self._get_sql(user))
+
+    @property
+    def _parsed_static_ids(self):
+        def try_cast_int(to_cast):
+            try:
+                return int(to_cast)
+            except ValueError:
+                pass
+        parsed = [try_cast_int(s.strip()) for s in self.static_ids.split('\n')] if self.static_ids else []
+        return [i for i in parsed if i is not None]
+
+    def _get_sql(self, user=None):
+        """
+        If needed, wraps the segment definition SQL to return a single result. Query optimizers take advantage of this
+        to speed up the query when we are only interrogating the segment for a single user.
+        """
+        if user and user.id:
+            return 'SELECT id FROM (%s) as temp WHERE id=%s' % (self.definition, user.id)
+        else:
+            return self.definition
 
     def clean(self):
-        """Validate that the definition SQL will execute. Needed for proper error handling in the Django admin."""
-        try:
-            self.execute_definition()
-        except SegmentExecutionError as e:
-            raise ValidationError(e)
-
-    def execute_definition(self):
         """
+        Validate that the definition SQL will execute. Needed for proper error handling in the Django admin.
         Executes the underlying definition SQL (via .members_live) and returns a list of the users in the segment.
 
         This could get memory-hungry if the query is returning a lot of users. Calling list() on the queryset executes
         it (makes it non-lazy). This is necessary in order to verify that the underlying SQL is in fact valid.
         """
-        try:
-            return list(self.members_live)
-        except InvalidQuery:
-            raise SegmentExecutionError('SQL definition must include the primary key of the %s model' % settings.AUTH_USER_MODEL)
-        except DatabaseError as e:
-            raise SegmentExecutionError('Error while executing SQL definition: %s' % e)
-        except Exception as e:
-            raise SegmentExecutionError(e)
+        if self.definition:
+            try:
+                list(self._execute_raw_user_query())
+            except SegmentExecutionError as e:
+                raise ValidationError(e)
 
-    def refresh(self):
-        """Clear out old membership information, run the definition SQL, and create new SegmentMembership entries."""
-        try:
-            with transaction.atomic():
-                self.flush()
-                memberships = [SegmentMembership(user=u, segment=self) for u in self.execute_definition()]
-                SegmentMembership.objects.bulk_create(memberships)
-        except SegmentExecutionError as e:
-            logger.exception("SEGMENTS: Error refreshing segment %s (id: %s): %s" % (self.name, self.id, e))
-            raise e
-
-    def flush(self):
+    def _flush(self):
         """Delete old segment membership data."""
         SegmentMembership.objects.filter(segment=self).delete()
 
@@ -139,10 +210,7 @@ def do_refresh(sender, instance, created, **kwargs):
         if app_settings.SEGMENTS_REFRESH_ASYNC:
             refresh_segment.delay(instance.id)
         else:
-            try:
-                instance.refresh()
-            except SegmentExecutionError:
-                pass  # errors handled upstream
+            instance.refresh()
 signals.post_save.connect(do_refresh, sender=Segment)
 
 

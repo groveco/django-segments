@@ -1,5 +1,7 @@
 django-segments allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries.
 
+Assumes your Django user model has an integer primary key called 'id'.
+
 What you do with those segments is up to you. Create a segment, and use the mixin with your user class::
 
     from django.contrib.auth.models import AbstractUser

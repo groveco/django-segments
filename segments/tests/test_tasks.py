@@ -1,6 +1,7 @@
 from django.test import TestCase
 from segments.tasks import refresh_segments, refresh_segment
 from segments.tests.factories import SegmentFactory, UserFactory
+import segments.app_settings
 from mock import Mock, patch
 
 
@@ -22,7 +23,11 @@ class TestTasks(TestCase):
 
     @patch('segments.tasks.Segment.objects.all')
     def test_refresh_handles_bad_queries(self, mocked_segment):
-        s1 = SegmentFactory(definition="fail")
+        segments.app_settings.SEGMENTS_REFRESH_ON_SAVE = False
+
+        s1 = SegmentFactory()
+        s1.definition = 'fail'
+        s1.save()
         s1.refresh = Mock(return_value=True)
 
         s2 = SegmentFactory()
@@ -33,6 +38,8 @@ class TestTasks(TestCase):
         refresh_segments()
 
         self.assertEqual(s1.refresh.call_count, 1)
+
+        segments.app_settings.SEGMENTS_REFRESH_ON_SAVE = True
 
     def test_refresh_existing_segment(self):
         UserFactory()
