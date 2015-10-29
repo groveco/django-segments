@@ -65,6 +65,7 @@ class Segment(models.Model):
     """
 
     name = models.CharField(max_length=128)
+    slug = models.SlugField(max_length=256, null=True, blank=True, unique=True)
     definition = models.TextField(help_text="SQL query returning IDs of users in the segment.", blank=True, null=True)
     static_ids = models.TextField(help_text="Newline-delimited list of IDs in the segment", blank=True, null=True)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -106,7 +107,7 @@ class Segment(models.Model):
     def members(self):
         """Return a queryset of all users (typed as settings.AUTH_USER_MODEL) that are members of this segment."""
         # The ORM is smart enough to issue this as one query with a subquery
-        return get_user_model().objects.filter(id__in=self.member_set.all().values_list('user_id', flat=True))
+        return self._users_from_ids(self.member_set.all().values_list('user_id', flat=True))
 
     @property
     @live_sql
@@ -121,12 +122,12 @@ class Segment(models.Model):
             return self._execute_raw_user_query()
 
         if self.static_ids and not self.definition:
-            return get_user_model().objects.filter(id__in=self._parsed_static_ids)
+            return self._users_from_ids(self._parsed_static_ids)
 
         if self.static_ids and self.definition:  # If there are SQL users and static users, dedupe and retrieve
             from_sql_ids = [u.id for u in self._execute_raw_user_query()]
             distinct_users = set(from_sql_ids + self._parsed_static_ids)
-            return get_user_model().objects.filter(id__in=distinct_users)
+            return self._users_from_ids(distinct_users)
 
     @live_sql
     def refresh(self):
@@ -144,6 +145,9 @@ class Segment(models.Model):
     #################
     # Private methods
     #################
+
+    def _users_from_ids(self, ids):
+        return get_user_model().objects.filter(id__in=ids)
 
     def _execute_raw_user_query(self, user=None):
         """
@@ -195,6 +199,21 @@ class Segment(models.Model):
 
     def __unicode__(self):
         return unicode(self.name)
+
+    @property
+    def static_users_sample(self):
+        if self.static_ids:
+            users = self._users_from_ids(self._parsed_static_ids)
+            return '\n'.join([u.email for u in users[:100]])
+        return ''
+
+    @property
+    @live_sql
+    def sql_users_sample(self):
+        if self.definition:
+            users = self._execute_raw_user_query()
+            return '\n'.join([u.email for u in users[:100]])
+        return ''
 
 
 def do_refresh(sender, instance, created, **kwargs):

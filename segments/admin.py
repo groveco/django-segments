@@ -8,8 +8,10 @@ class SegmentAdmin(admin.ModelAdmin):
     The Segment list view in the Django admin has a "refresh" action available to refresh the selected Segments.
     """
 
+    prepopulated_fields = {"slug": ("name",)}
     list_display = ('name', 'members_count')
-    readonly_fields = ('created_date', 'members_count',)
+    readonly_fields = ('created_date', 'members_count', 'static_users_sample', 'sql_users_sample')
+    fields = ('name', 'members_count', 'definition', 'sql_users_sample', 'static_ids', 'static_users_sample', 'created_date')
 
     def members_count(self, segment):
         return len(segment)
