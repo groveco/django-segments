@@ -1,5 +1,5 @@
 from django.test import TestCase
-from segments.tests.factories import SegmentFactory, UserFactory, user_table
+from segments.tests.factories import SegmentFactory, UserFactory, user_table, AllUserSegmentFactory
 from segments import app_settings
 from segments.models import SegmentMembership, SegmentExecutionError
 from mock import Mock, patch
@@ -11,7 +11,7 @@ class TestSegment(TestCase):
         self.u = UserFactory()
 
     def test_basic_segment(self):
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         self.assertEqual(len(s), 1)
 
     def test_segment_invalid(self):
@@ -22,13 +22,13 @@ class TestSegment(TestCase):
             pass
 
     def test_flush(self):
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         self.assertEqual(1, SegmentMembership.objects.count())
         s._flush()
         self.assertEqual(0, SegmentMembership.objects.count())
 
     def test_segment_valid(self):
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         self.assertEqual(len([u for u in s._execute_raw_user_query()]), 1)
 
     def test_user_belongs_to_segment(self):
@@ -42,20 +42,20 @@ class TestSegment(TestCase):
         self.assertFalse(s.has_member(self.u))
 
     def test_user_belongs_to_segment_live(self):
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         u2 = UserFactory()
         self.assertFalse(s.has_member(u2))
         self.assertTrue(s.has_member_live(u2))
 
     def test_has_members_live_saves_changes(self):
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         u2 = UserFactory()
         self.assertFalse(s.has_member(u2))
         self.assertTrue(s.has_member_live(u2))
         self.assertTrue(s.has_member(u2))
 
     def test_segment_refresh(self):
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         UserFactory()
         self.assertEqual(len(s), 1)
         s.refresh()
@@ -66,8 +66,8 @@ class TestSegment(TestCase):
         self.assertEqual(len(s), 1)
 
     def test_multiple_segments(self):
-        SegmentFactory()
-        s2 = SegmentFactory()
+        AllUserSegmentFactory()
+        s2 = AllUserSegmentFactory()
         self.assertEqual(len(s2), 1)
 
     def segment_flushed_during_reset(self):
@@ -75,7 +75,7 @@ class TestSegment(TestCase):
         Assert that new SegmentMembership objects are created after a refresh, even though the members themselves
         are the same.
         """
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
 
         orig_member_ids = s.member_set.all().values_list('id', flat=True)
         orig_members = s.members.all().values_list('id', flat=True)
@@ -89,20 +89,20 @@ class TestSegment(TestCase):
         self.assertEqual(set(orig_members), set(refreshed_members))
 
     def test_refresh_after_create(self):
-        s = SegmentFactory.build()
+        s = AllUserSegmentFactory.build()
         s.refresh = Mock()
         s.save()
         s.refresh.assert_called_with()
 
     def test_refresh_after_save(self):
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         s.refresh = Mock()
         s.save()
         self.assertEqual(s.refresh.call_count, 1)
 
     def test_refresh_not_called_after_save_if_disabled(self):
         app_settings.SEGMENTS_REFRESH_ON_SAVE = False
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         s.refresh = Mock()
         s.save()
         self.assertEqual(s.refresh.call_count, 0)
@@ -112,7 +112,7 @@ class TestSegment(TestCase):
     def test_refresh_async_called_if_enabled(self, mocked_refresh):
         mocked_refresh.delay = Mock()
         app_settings.SEGMENTS_REFRESH_ASYNC = True
-        SegmentFactory()
+        AllUserSegmentFactory()
         self.assertEqual(mocked_refresh.delay.call_count, 1)
         app_settings.SEGMENTS_REFRESH_ASYNC = False
 
@@ -128,7 +128,7 @@ class TestSegment(TestCase):
         from segments.tests.models import SegmentableUser
         app_settings.SEGMENTS_EXEC_CONNECTION = 'other'
         SegmentableUser.objects.using(app_settings.SEGMENTS_EXEC_CONNECTION).create()
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         s.refresh()
         self.assertEqual(s.members.count(), 1)
         app_settings.SEGMENTS_EXEC_CONNECTION = 'default'
@@ -152,42 +152,42 @@ class TestSegmentStatic(TestCase):
 
     def test_static_only_members(self):
         u = UserFactory()
-        s = SegmentFactory(static_ids='%s' % u.id, definition=None)
+        s = SegmentFactory(static_ids='%s' % u.id)
         self.assertEqual(len(s), 1)
 
     def test_static_only_members_live(self):
         u = UserFactory()
-        s = SegmentFactory.build(static_ids='%s' % u.id, definition=None)
+        s = SegmentFactory.build(static_ids='%s' % u.id)
         self.assertEqual(len(list(s.members_live)), 1)
 
     def test_static_only_has_member(self):
         u = UserFactory()
-        s = SegmentFactory(static_ids='%s' % u.id, definition=None)
+        s = SegmentFactory(static_ids='%s' % u.id)
         self.assertTrue(s.has_member(u))
 
     def test_static_only_has_member_live(self):
         u = UserFactory()
-        s = SegmentFactory.build(static_ids='%s' % u.id, definition=None)
+        s = SegmentFactory.build(static_ids='%s' % u.id)
         self.assertTrue(s.has_member_live(u))
 
     def test_static_and_dynamic_members(self):
         u = UserFactory()
-        s = SegmentFactory(static_ids='foo\n123123')
+        s = AllUserSegmentFactory(static_ids='foo\n123123')
         self.assertEqual(len(s), 1)
 
     def test_static_and_dynamic_members_live(self):
         u = UserFactory()
-        s = SegmentFactory.build(static_ids='foo\n123123')
+        s = AllUserSegmentFactory.build(static_ids='foo\n123123')
         self.assertEqual(len(list(s.members_live)), 1)
 
     def test_static_and_dynamic_has_member(self):
         u = UserFactory()
-        s = SegmentFactory(static_ids='foo\n123123')
+        s = AllUserSegmentFactory(static_ids='foo\n123123')
         self.assertTrue(s.has_member(u))
 
     def test_static_and_dynamic_has_member_live(self):
         u = UserFactory()
-        s = SegmentFactory.build(static_ids='foo\n123123')
+        s = AllUserSegmentFactory.build(static_ids='foo\n123123')
         self.assertTrue(s.has_member_live(u))
 
 
@@ -195,7 +195,7 @@ class TestMixin(TestCase):
 
     def setUp(self):
         self.u = UserFactory()
-        self.s = SegmentFactory()
+        self.s = AllUserSegmentFactory()
 
     def test_mixin_gives_fields(self):
         self.assertEqual(self.u.segments.count(), 1)

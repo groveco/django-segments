@@ -1,6 +1,6 @@
 from django.test import TestCase
 from segments.tasks import refresh_segments, refresh_segment
-from segments.tests.factories import SegmentFactory, UserFactory
+from segments.tests.factories import SegmentFactory, UserFactory, AllUserSegmentFactory
 import segments.app_settings
 from mock import Mock, patch
 
@@ -9,10 +9,10 @@ class TestTasks(TestCase):
 
     @patch('segments.tasks.Segment.objects.all')
     def test_refresh(self, mocked_segment):
-        s1 = SegmentFactory()
+        s1 = AllUserSegmentFactory()
         s1.refresh = Mock(return_value=True)
 
-        s2 = SegmentFactory()
+        s2 = AllUserSegmentFactory()
         s2.refresh = Mock(return_value=True)
 
         mocked_segment.return_value = [s1, s2]
@@ -43,7 +43,7 @@ class TestTasks(TestCase):
 
     def test_refresh_existing_segment(self):
         UserFactory()
-        s = SegmentFactory()
+        s = AllUserSegmentFactory()
         UserFactory()
         self.assertEqual(len(s), 1)
         refresh_segment(s.id)

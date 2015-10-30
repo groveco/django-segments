@@ -11,6 +11,12 @@ def user_table():
 class SegmentFactory(factory.DjangoModelFactory):
     FACTORY_FOR = models.Segment
     name = "Segment 1"
+
+
+class AllUserSegmentFactory(factory.DjangoModelFactory):
+    FACTORY_FOR = models.Segment
+    name = "Segment 1"
+
     definition = "select * from %s" % user_table()
 
 
