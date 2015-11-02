@@ -21,7 +21,8 @@ def refresh_segments():
             failed.append(s)
 
         end_seg = time()
-        logger.info("SEGMENTS: Refreshed segment %s (id: %s) in %s milliseconds", (s.name, s.id, (end_seg - start_seg) * 1000))
+        logger.info("SEGMENTS: Refreshed segment %s (id: %s) in %s milliseconds",
+                    (s.name, s.id, (end_seg - start_seg) * 1000))
 
     end = time()
     logger.info("SEGMENTS: Successfully refreshed %s segments. Failed to refresh %s segments. Complete in %s seconds"

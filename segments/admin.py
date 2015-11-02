@@ -1,5 +1,7 @@
 from django.contrib import admin
+from django.contrib import messages
 from segments.models import Segment, SegmentMembership
+from segments import app_settings
 
 
 class SegmentAdmin(admin.ModelAdmin):
@@ -11,7 +13,8 @@ class SegmentAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     list_display = ('name', 'members_count')
     readonly_fields = ('created_date', 'members_count', 'static_users_sample', 'sql_users_sample')
-    fields = ('name', 'slug', 'members_count', 'definition', 'sql_users_sample', 'static_ids', 'static_users_sample', 'created_date')
+    fields = ('name', 'slug', 'members_count', 'definition', 'sql_users_sample', 'static_ids', 'static_users_sample'
+              , 'created_date')
 
     def members_count(self, segment):
         return len(segment)
@@ -22,6 +25,11 @@ class SegmentAdmin(admin.ModelAdmin):
         for s in queryset:
             s.refresh()
         self.message_user(request, 'Refreshed %s segments.' % len(queryset))
+
+    def save_model(self, request, obj, form, change):
+        if app_settings.SEGMENTS_REFRESH_ASYNC and (not change or app_settings.SEGMENTS_REFRESH_ON_SAVE):
+            messages.add_message(request, messages.INFO, "Segment refresh started...")
+        return super(SegmentAdmin, self).save_model(request, obj, form, change)
 
 
 class SegmentMembershipInline(admin.TabularInline):
