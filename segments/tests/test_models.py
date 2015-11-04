@@ -54,6 +54,17 @@ class TestSegment(TestCase):
         self.assertTrue(s.has_member_live(u2))
         self.assertTrue(s.has_member(u2))
 
+    def test_has_members_live_removes(self):
+        from segments.models import Segment
+        u = UserFactory()
+        s = SegmentFactory(definition='select %s "id"' % u.id)
+        self.assertTrue(s.has_member_live(u))
+        Segment.objects.filter(id=s.id).update(definition='select -1 "id"')
+        s.refresh_from_db()
+        self.assertTrue(s.has_member(u))
+        self.assertFalse(s.has_member_live(u))
+        self.assertFalse(s.has_member(u))
+
     def test_segment_refresh(self):
         s = AllUserSegmentFactory()
         UserFactory()
