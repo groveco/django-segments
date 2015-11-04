@@ -287,6 +287,12 @@ class SegmentMixin(object):
 
         Note that this executes the SQL of all segments and can be very slow. Not recommended for use
         """
-        with transaction.atomic():
-            for s in Segment.objects.all():
-                s.has_member_live(self)
+        for s in Segment.objects.all():
+            s.has_member_live(self)
+
+    def refresh_segments_async(self):
+        """
+        Invokes SegmentMixin.refresh_segments via a celery task
+        """
+        from segments.tasks import refresh_user_segments
+        refresh_user_segments.delay(self.pk)

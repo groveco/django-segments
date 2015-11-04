@@ -219,3 +219,10 @@ class TestMixin(TestCase):
         self.assertEqual(u2.segments.count(), 0)
         u2.refresh_segments()
         self.assertEqual(u2.segments.count(), 1)
+
+    @patch('segments.tasks.refresh_user_segments')
+    def test_refresh_membership_async(self, mocked):
+        mocked.delay = Mock()
+        u2 = UserFactory()
+        u2.refresh_segments_async()
+        self.assertEqual(mocked.delay.call_count, 1)

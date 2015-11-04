@@ -1,5 +1,5 @@
 from django.test import TestCase
-from segments.tasks import refresh_segments, refresh_segment
+from segments.tasks import refresh_segments, refresh_segment, refresh_user_segments
 from segments.tests.factories import SegmentFactory, UserFactory, AllUserSegmentFactory
 import segments.app_settings
 from mock import Mock, patch
@@ -54,3 +54,10 @@ class TestTasks(TestCase):
         s = SegmentFactory()
         refresh_segment(s.id + 1)  #bad ID
         pass
+
+    def test_refresh_user_segments(self):
+        AllUserSegmentFactory()
+        u2 = UserFactory()
+        self.assertEqual(u2.segments.count(), 0)
+        refresh_user_segments(u2.id)
+        self.assertEqual(u2.segments.count(), 1)

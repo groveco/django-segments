@@ -1,4 +1,5 @@
 from segments.models import Segment, SegmentExecutionError
+from django.contrib.auth import get_user_model
 from celery import task
 from time import time
 import logging
@@ -37,3 +38,13 @@ def refresh_segment(segment_id):
         s.refresh()
     except Segment.DoesNotExist:
         logger.exception("SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id)
+
+
+@task(name='user_segments_refresh')
+def refresh_user_segments(user_id):
+    cls = get_user_model()
+    try:
+        u = cls.objects.get(pk=user_id)
+        u.refresh_segments()
+    except cls.DoesNotExist:
+        logger.exception("SEGMENTS: Unable to refresh segments for user id %s. %s.DoesNotExist" % (cls.__name__, user_id))
