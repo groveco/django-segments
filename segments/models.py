@@ -100,7 +100,7 @@ class Segment(models.Model):
             if exists:
                 SegmentMembership.objects.get_or_create(user=user, segment=self)
             else:
-                SegmentMembership.filter(user=user, segment=self).delete()
+                SegmentMembership.objects.filter(user=user, segment=self).delete()
         return exists
 
     @property
