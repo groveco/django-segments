@@ -9,17 +9,23 @@ def user_table():
 
 
 class SegmentFactory(factory.DjangoModelFactory):
-    FACTORY_FOR = models.Segment
     name = "Segment 1"
+
+    class Meta:
+        model = models.Segment
 
 
 class AllUserSegmentFactory(factory.DjangoModelFactory):
-    FACTORY_FOR = models.Segment
     name = "Segment 1"
 
     definition = "select * from %s" % user_table()
 
+    class Meta:
+        model = models.Segment
+
 
 class UserFactory(factory.DjangoModelFactory):
-    FACTORY_FOR = SegmentableUser
     username = factory.Sequence(lambda n: 'name{0}'.format(n))
+
+    class Meta:
+        model = SegmentableUser
