@@ -5,6 +5,7 @@ from django.db.models.query_utils import InvalidQuery
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import signals
+from django.contrib.contenttypes.models import ContentType
 from segments import app_settings
 import logging
 
@@ -69,6 +70,8 @@ class Segment(models.Model):
     definition = models.TextField(help_text="SQL query returning IDs of users in the segment.", blank=True, null=True)
     static_ids = models.TextField(help_text="Newline-delimited list of IDs in the segment", blank=True, null=True)
     created_date = models.DateTimeField(auto_now_add=True)
+    content_type = models.ForeignKey(ContentType, null=True, blank=True, help_text='If using a ORM permission, set this and manager method')
+    manager_method = models.CharField(max_length=128, null=True, blank=True, help_text='Methoed to call on ContentType.model_class().objects')
 
     ############
     # Public API
@@ -92,7 +95,7 @@ class Segment(models.Model):
         if not user.id:
             return False
         exists = False
-        if self.definition:
+        if self._is_sql_based:
             exists = bool(list(self._execute_raw_user_query(user=user)))
         if self.static_ids:
             exists = exists or user.id in self._parsed_static_ids
@@ -118,13 +121,13 @@ class Segment(models.Model):
         Refreshing a segment ultimately proxies to this method.
         """
 
-        if self.definition and not self.static_ids:
+        if self._is_sql_based and not self.static_ids:
             return self._execute_raw_user_query()
 
-        if self.static_ids and not self.definition:
+        if self.static_ids and not self._is_sql_based:
             return self._users_from_ids(self._parsed_static_ids)
 
-        if self.static_ids and self.definition:  # If there are SQL users and static users, dedupe and retrieve
+        if self.static_ids and self._is_sql_based:  # If there are SQL users and static users, dedupe and retrieve
             from_sql_ids = [u.id for u in self._execute_raw_user_query()]
             distinct_users = set(from_sql_ids + self._parsed_static_ids)
             return self._users_from_ids(distinct_users)
@@ -134,7 +137,7 @@ class Segment(models.Model):
         """Clear out old membership information, run the definition SQL, and create new SegmentMembership entries."""
         with transaction.atomic():
             memberships = []
-            if self.definition:
+            if self._is_sql_based:
                 memberships += [u.id for u in self._execute_raw_user_query()]
             if self.static_ids:
                 memberships += self._parsed_static_ids
@@ -145,6 +148,17 @@ class Segment(models.Model):
     #################
     # Private methods
     #################
+
+    @property
+    def _is_sql_based(self):
+        return bool(self.definition or (self.content_type_id and self.manager_method))
+
+    def _sql(self):
+        if self.definition:
+            return self.definition
+        if self.content_type_id and self.manager_method:
+            return str(getattr(self.content_type.model_class().objects,
+                           self.manager_method.replace(';', ''))().query)
 
     def _users_from_ids(self, ids):
         return get_user_model().objects.filter(id__in=ids)
@@ -171,9 +185,9 @@ class Segment(models.Model):
         to speed up the query when we are only interrogating the segment for a single user.
         """
         if user and user.id:
-            return 'SELECT id FROM (%s) as temp WHERE id=%s' % (self.definition, user.id)
+            return 'SELECT id FROM (%s) as temp WHERE id=%s' % (self._sql(), user.id)
         else:
-            return self.definition
+            return self._sql()
 
     def clean(self):
         """
@@ -183,7 +197,7 @@ class Segment(models.Model):
         This could get memory-hungry if the query is returning a lot of users. Calling list() on the queryset executes
         it (makes it non-lazy). This is necessary in order to verify that the underlying SQL is in fact valid.
         """
-        if self.definition:
+        if self._is_sql_based:
             try:
                 list(self._execute_raw_user_query())
             except SegmentExecutionError as e:
@@ -210,7 +224,7 @@ class Segment(models.Model):
     @property
     @live_sql
     def sql_users_sample(self):
-        if self.definition:
+        if self._is_sql_based:
             users = self._execute_raw_user_query()
             return '\n'.join([u.email for u in users[:100]])
         return ''

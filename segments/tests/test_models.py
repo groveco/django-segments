@@ -145,6 +145,16 @@ class TestSegment(TestCase):
         app_settings.SEGMENTS_EXEC_CONNECTION = 'default'
 
 
+class TestSegmentManagerMethod(TestCase):
+
+    def test_gets_members_from_manager(self):
+        from django.contrib.contenttypes.models import ContentType
+        u = UserFactory()
+        user_ct = ContentType.objects.get(model='segmentableuser')
+        s = SegmentFactory(content_type=user_ct, manager_method='all')
+        self.assertTrue(s.has_member_live(u))
+
+
 class TestSegmentStatic(TestCase):
 
     def test_parse_static_ids(self):
