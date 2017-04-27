@@ -70,8 +70,10 @@ class Segment(models.Model):
     definition = models.TextField(help_text="SQL query returning IDs of users in the segment.", blank=True, null=True)
     static_ids = models.TextField(help_text="Newline-delimited list of IDs in the segment", blank=True, null=True)
     created_date = models.DateTimeField(auto_now_add=True)
-    content_type = models.ForeignKey(ContentType, null=True, blank=True, help_text='If using a ORM permission, set this and manager method')
-    manager_method = models.CharField(max_length=128, null=True, blank=True, help_text='Methoed to call on ContentType.model_class().objects')
+    content_type = models.ForeignKey(ContentType, null=True, blank=True,
+                                     help_text='If using a ORM permission, set this and manager method')
+    manager_method = models.CharField(max_length=128, null=True, blank=True,
+                                      help_text='Methoed to call on ContentType.model_class().objects')
 
     ############
     # Public API
@@ -154,11 +156,18 @@ class Segment(models.Model):
         return bool(self.definition or (self.content_type_id and self.manager_method))
 
     def _sql(self):
+        """
+        If there is a SQL definition, use that.
+        If there is a content type + manager method definition, generate the SQL (and relevant params)
+        Returns SQL string and params to get merged in. Can't return merged SQL because it might be invalid
+        as per https://github.com/django/django/blob/master/django/db/models/sql/query.py#L223
+        """
         if self.definition:
-            return self.definition
+            return self.definition, []
         if self.content_type_id and self.manager_method:
-            return str(getattr(self.content_type.model_class().objects,
-                           self.manager_method.replace(';', ''))().query)
+            manager = self.content_type.model_class().objects
+            fn = getattr(manager, self.manager_method)
+            return fn().query.sql_with_params()
 
     def _users_from_ids(self, ids):
         return get_user_model().objects.filter(id__in=ids)
@@ -167,7 +176,8 @@ class Segment(models.Model):
         """
         Helper that returns a RawQuerySet of user objects.
         """
-        return get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(self._get_sql(user))
+        sql, params = self._get_sql(user)
+        return get_user_model().objects.db_manager(app_settings.SEGMENTS_EXEC_CONNECTION).raw(sql, params)
 
     @property
     def _parsed_static_ids(self):
@@ -184,10 +194,11 @@ class Segment(models.Model):
         If needed, wraps the segment definition SQL to return a single result. Query optimizers take advantage of this
         to speed up the query when we are only interrogating the segment for a single user.
         """
+        sql, params = self._sql()
         if user and user.id:
-            return 'SELECT id FROM (%s) as temp WHERE id=%s' % (self._sql(), user.id)
+            return 'SELECT id FROM (%s) as temp WHERE id=%s' % (sql, user.id), params
         else:
-            return self._sql()
+            return sql, params
 
     def clean(self):
         """

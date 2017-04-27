@@ -11,10 +11,10 @@ class SegmentAdmin(admin.ModelAdmin):
     """
 
     prepopulated_fields = {"slug": ("name",)}
-    list_display = ('name', 'members_count')
+    list_display = ('name', 'members_count', 'definition', 'content_type', 'manager_method')
     readonly_fields = ('created_date', 'members_count', 'static_users_sample', 'sql_users_sample')
-    fields = ('name', 'slug', 'members_count', 'definition', 'sql_users_sample', 'static_ids', 'static_users_sample'
-              , 'created_date')
+    fields = ('name', 'slug', 'members_count', 'definition', 'content_type', 'manager_method',
+              'sql_users_sample', 'static_ids', 'static_users_sample', 'created_date')
 
     def members_count(self, segment):
         return len(segment)
