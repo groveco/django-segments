@@ -14,9 +14,16 @@ class SegmentableUserManager(Manager):
         return self.filter(username="Chris").all()
 
 
+class OtherSegmentableUserManager(Manager):
+
+    def test_filter(self):
+        return self.filter(username="Susan").all()
+
+
 class SegmentableUser(AbstractUser, SegmentMixin):
 
     objects = SegmentableUserManager()
+    special = OtherSegmentableUserManager()
 
 
 related_names_for = ('groups', 'user_permissions')

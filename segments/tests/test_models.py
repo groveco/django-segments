@@ -3,7 +3,6 @@ from segments.tests.factories import SegmentFactory, UserFactory, user_table, Al
 from segments import app_settings
 from segments.models import SegmentMembership, SegmentExecutionError
 from mock import Mock, patch
-from django.contrib.contenttypes.models import ContentType
 
 
 class TestSegment(TestCase):
@@ -153,7 +152,7 @@ class TestSegment(TestCase):
         s = SegmentFactory(static_ids="12")
         self.assertFalse(s._is_sql_based)
 
-        s = SegmentFactory(content_type=ContentType.objects.get(model='segmentableuser'), manager_method='all')
+        s = SegmentFactory(manager_method='all')
         self.assertTrue(s._is_sql_based)
 
     def test_get_sql_definition(self):
@@ -162,8 +161,7 @@ class TestSegment(TestCase):
         self.assertEqual(s._sql()[0], s.definition)
 
     def test_get_sql_manager_valueslist(self):
-        ct = ContentType.objects.get(model='segmentableuser')
-        s = SegmentFactory(content_type=ct, manager_method='test_values_list')
+        s = SegmentFactory(manager_method='test_values_list')
         self.assertEqual(s._sql()[0], 'SELECT "tests_segmentableuser"."id" FROM "tests_segmentableuser"')
 
 
@@ -171,15 +169,20 @@ class TestSegmentManagerMethod(TestCase):
 
     def test_gets_members_from_manager(self):
         u = UserFactory()
-        user_ct = ContentType.objects.get(model='segmentableuser')
-        s = SegmentFactory(content_type=user_ct, manager_method='all')
+        s = SegmentFactory(manager_method='all')
         self.assertTrue(s.has_member_live(u))
 
     def test_gets_members_from_manager_method(self):
         u_in = UserFactory(username='Chris')
-        u_not_in = UserFactory()
-        user_ct = ContentType.objects.get(model='segmentableuser')
-        s = SegmentFactory(content_type=user_ct, manager_method='test_filter')
+        u_not_in = UserFactory(username='Susan')
+        s = SegmentFactory(manager_method='test_filter')
+        self.assertTrue(s.has_member_live(u_in))
+        self.assertFalse(s.has_member_live(u_not_in))
+
+    def test_gets_members_from_alternative_manager_method(self):
+        u_not_in = UserFactory(username='Chris')
+        u_in = UserFactory(username='Susan')
+        s = SegmentFactory(manager_method='test_filter', manager_name='special')
         self.assertTrue(s.has_member_live(u_in))
         self.assertFalse(s.has_member_live(u_not_in))
 

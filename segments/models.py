@@ -5,7 +5,6 @@ from django.db.models.query_utils import InvalidQuery
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import signals
-from django.contrib.contenttypes.models import ContentType
 from segments import app_settings
 import logging
 
@@ -70,10 +69,9 @@ class Segment(models.Model):
     definition = models.TextField(help_text="SQL query returning IDs of users in the segment.", blank=True, null=True)
     static_ids = models.TextField(help_text="Newline-delimited list of IDs in the segment", blank=True, null=True)
     created_date = models.DateTimeField(auto_now_add=True)
-    content_type = models.ForeignKey(ContentType, null=True, blank=True,
-                                     help_text='If using a ORM permission, set this and manager method')
+    manager_name = models.CharField(max_length=128, default="objects", help_text="If using manager_method, specify the name of the manager (usually 'objects')")
     manager_method = models.CharField(max_length=128, null=True, blank=True,
-                                      help_text='Methoed to call on ContentType.model_class().objects')
+                                      help_text='Methoed to call on ContentType.model_class().manager_name')
 
     ############
     # Public API
@@ -153,7 +151,7 @@ class Segment(models.Model):
 
     @property
     def _is_sql_based(self):
-        return bool(self.definition or (self.content_type_id and self.manager_method))
+        return bool(self.definition or (self.manager_name and self.manager_method))
 
     def _sql(self):
         """
@@ -164,8 +162,8 @@ class Segment(models.Model):
         """
         if self.definition:
             return self.definition, []
-        if self.content_type_id and self.manager_method:
-            manager = self.content_type.model_class().objects
+        if self.manager_name and self.manager_method:
+            manager = getattr(get_user_model(), self.manager_name)
             fn = getattr(manager, self.manager_method)
             return fn().query.sql_with_params()
 

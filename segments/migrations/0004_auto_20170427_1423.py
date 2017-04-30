@@ -9,19 +9,21 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('contenttypes', '0002_remove_content_type_name'),
         ('segments', '0003_auto_20151028_1914'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='segment',
-            name='content_type',
-            field=models.ForeignKey(blank=True, help_text=b'If using a ORM permission, set this and manager method', null=True, on_delete=django.db.models.deletion.CASCADE, to='contenttypes.ContentType'),
+            name='manager_method',
+            field=models.CharField(blank=True, help_text=b'Methoed to call on ContentType.model_class().manager_name',
+                                   max_length=128, null=True),
         ),
         migrations.AddField(
             model_name='segment',
-            name='manager_method',
-            field=models.CharField(blank=True, help_text=b'Methoed to call on ContentType.model_class().objects', max_length=128, null=True),
+            name='manager_name',
+            field=models.CharField(default=b'objects',
+                                   help_text=b"If using manager_method, specify the name of the manager (usually 'objects')",
+                                   max_length=128),
         ),
     ]
