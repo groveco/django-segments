@@ -1,4 +1,6 @@
-django-segments allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries.
+django-segments allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries,
+statis lists of IDs, or even by specifying a model type and a method on that model's .objects manager (e.g.
+ORM code).
 
 Assumes your Django user model has an integer primary key called 'id'.
 
@@ -56,3 +58,7 @@ Then add the following to your settings.py::
     DATABASE_ROUTERS = ['segments.router.SegmentsRouter',]
     
 You're ready to go!
+
+## Tests
+
+>>> python manage.py test --settings=segments.tests.settings

@@ -144,6 +144,48 @@ class TestSegment(TestCase):
         self.assertEqual(s.members.count(), 1)
         app_settings.SEGMENTS_EXEC_CONNECTION = 'default'
 
+    def test_is_sql_based(self):
+        definition = 'select * from %s where id != %s' % (user_table(), self.u.id)
+        s = SegmentFactory(definition=definition)
+        self.assertTrue(s._is_sql_based)
+
+        s = SegmentFactory(static_ids="12")
+        self.assertFalse(s._is_sql_based)
+
+        s = SegmentFactory(manager_method='all')
+        self.assertTrue(s._is_sql_based)
+
+    def test_get_sql_definition(self):
+        definition = 'select * from %s where id != %s' % (user_table(), self.u.id)
+        s = SegmentFactory(definition=definition)
+        self.assertEqual(s._sql()[0], s.definition)
+
+    def test_get_sql_manager_valueslist(self):
+        s = SegmentFactory(manager_method='test_values_list')
+        self.assertEqual(s._sql()[0], 'SELECT "tests_segmentableuser"."id" FROM "tests_segmentableuser"')
+
+
+class TestSegmentManagerMethod(TestCase):
+
+    def test_gets_members_from_manager(self):
+        u = UserFactory()
+        s = SegmentFactory(manager_method='all')
+        self.assertTrue(s.has_member_live(u))
+
+    def test_gets_members_from_manager_method(self):
+        u_in = UserFactory(username='Chris')
+        u_not_in = UserFactory(username='Susan')
+        s = SegmentFactory(manager_method='test_filter')
+        self.assertTrue(s.has_member_live(u_in))
+        self.assertFalse(s.has_member_live(u_not_in))
+
+    def test_gets_members_from_alternative_manager_method(self):
+        u_not_in = UserFactory(username='Chris')
+        u_in = UserFactory(username='Susan')
+        s = SegmentFactory(manager_method='test_filter', manager_name='special')
+        self.assertTrue(s.has_member_live(u_in))
+        self.assertFalse(s.has_member_live(u_not_in))
+
 
 class TestSegmentStatic(TestCase):
 
