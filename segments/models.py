@@ -134,15 +134,21 @@ class Segment(models.Model):
 
     @live_sql
     def refresh(self):
-        """Clear out old membership information, run the definition SQL, and create new SegmentMembership entries."""
+        """Figure out the 'diff', add and remove SegmentMemberships, so the segment will contain relevant users only """
         with transaction.atomic():
-            memberships = []
+            user_ids = []
             if self._is_sql_based:
-                memberships += [u.id for u in self._execute_raw_user_query()]
+                user_ids += [u.id for u in self._execute_raw_user_query()]
             if self.static_ids:
-                memberships += self._parsed_static_ids
-            memberships = [SegmentMembership(user_id=uid, segment=self) for uid in set(memberships)]
-            self._flush()
+                user_ids += self._parsed_static_ids
+
+            user_ids = set(user_ids)
+            existing = set(self.member_set.values_list('user_id', flat=True))
+            to_remove = existing - user_ids
+            to_add = user_ids - existing
+
+            memberships = [SegmentMembership(user_id=uid, segment=self) for uid in to_add]
+            self._flush(to_remove)
             SegmentMembership.objects.bulk_create(memberships)
 
     #################
@@ -212,9 +218,12 @@ class Segment(models.Model):
             except SegmentExecutionError as e:
                 raise ValidationError(e)
 
-    def _flush(self):
+    def _flush(self, user_ids=None):
         """Delete old segment membership data."""
-        SegmentMembership.objects.filter(segment=self).delete()
+        queryset = SegmentMembership.objects.filter(segment=self)
+        if user_ids is not None:
+            queryset = queryset.filter(user_id__in=user_ids)
+        queryset.delete()
 
     def __len__(self):
         """Calling len() on a segment returns the number of members of that segment."""
