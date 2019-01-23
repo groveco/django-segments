@@ -1,4 +1,4 @@
-import app_settings
+from .app_settings import SEGMENTS_EXEC_CONNECTION
 
 
 class SegmentsRouter(object):
@@ -31,7 +31,7 @@ class SegmentsRouter(object):
         Where 'u' is coming from a SEGMENTS_EXEC_CONNECTION queryset.
         """
         is_segments = obj1._meta.app_label == 'segments'
-        is_conn = obj2._state.db == app_settings.SEGMENTS_EXEC_CONNECTION
+        is_conn = obj2._state.db == SEGMENTS_EXEC_CONNECTION
         return True if is_segments and is_conn else None
 
     def allow_syncdb(self, db, model):
