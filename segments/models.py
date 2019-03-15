@@ -132,7 +132,7 @@ class SegmentMixin(object):
     @property
     def segments(self):
         """Return all the segments to which this member belongs."""
-        return Segment.objects.filter(id__in=SegmentHelper().get_user_segments(self.pk))
+        return Segment.objects.filter(id__in=SegmentHelper().get_user_segments(self.pk)).order_by('priority')
 
     def is_member(self, segment):
         """Helper method. Proxies to segment.has_member(self)"""

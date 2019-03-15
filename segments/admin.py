@@ -11,9 +11,9 @@ class SegmentAdmin(admin.ModelAdmin):
     """
 
     prepopulated_fields = {"slug": ("name",)}
-    list_display = ('name', 'members_count', 'definition')
+    list_display = ('name', 'priority', 'members_count', 'definition')
     readonly_fields = ('created_date', 'members_count', 'updated_date')
-    fields = ('name', 'slug', 'members_count', 'definition', 'created_date', 'updated_date')
+    fields = ('name', 'slug', 'priority', 'members_count', 'definition', 'created_date', 'updated_date')
 
     actions = ('refresh',)
 
