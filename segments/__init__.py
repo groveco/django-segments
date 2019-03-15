@@ -1,5 +1,5 @@
 __version_info__ = {
-    'major': 0,
+    'major': 2,
     'minor': 0,
     'micro': 1,
     'releaselevel': 'final',

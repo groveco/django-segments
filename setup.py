@@ -13,19 +13,19 @@ def read(fname):
 setup(
     name = "django-segments",
     version = __version__,
-    author = "Chris Clark",
+    author = "Chris Clark, Kate Kligman",
     author_email = "chris@untrod.com",
     description = ("Create arbitrary groups of users via SQL queries."),
     license = "MIT",
     keywords = "django segments queries segmentation marketing groups sql",
-    url = "https://github.com/epantry/django-segments",
+    url = "https://github.com/groveco/django-segments",
     packages=['segments'],
     long_description=read('readme.rst'),
     classifiers=[
         "Topic :: Utilities",
     ],
     install_requires=[
-        'Django>=1.5',
+        'Django>=1.11.6',
     ],
     include_package_data=True,
     zip_safe = False,

@@ -46,3 +46,4 @@ AUTHENTICATION_BACKENDS = (
 )
 
 STATIC_URL = '/static/'
+SEGMENTS_REDIS_URI = 'redis://localhost:6379'

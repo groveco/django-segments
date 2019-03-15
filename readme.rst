@@ -41,7 +41,7 @@ The code is thoroughly documented and tested.
 
 To use, first install (pypi package coming soon)::
 
-    pip install -e git+https://github.com/epantry/django-segments#egg=segments
+    pip install -e git+https://github.com/groveco/django-segments#egg=segments
 
 Then add the following to your settings.py::
 
@@ -53,9 +53,6 @@ Then add the following to your settings.py::
     # This is the name of the connection Segments will use to evaluate segment SQL
     # Recommended to set this to a readonly DB role. Defaults to 'default'.
     SEGMENTS_EXEC_CONNECTION = 'readonly'
-    
-    # If you are using a readonly DB name, you must add the DB router.
-    DATABASE_ROUTERS = ['segments.router.SegmentsRouter',]
     
 You're ready to go!
 
