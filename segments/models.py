@@ -51,9 +51,7 @@ def live_sql(fn):
 class Segment(models.Model):
 
     """
-    A segment, as defined by a SQL query. Segments are designed to be periodically refreshed, which populates
-    an intermediate table of users (termed "members"), along with the segments they belong to. In other words,
-    the SQL definition is not executed "live".
+    A segment, as defined by a SQL query. Segments are designed to be stored in Redis and periodically refreshed.
     """
 
     name = models.CharField(max_length=128)
@@ -63,6 +61,8 @@ class Segment(models.Model):
     members_count = models.PositiveIntegerField(null=True, blank=True, default=0)
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(null=True, blank=True, db_index=True, auto_now=True)
+
+    helper = SegmentHelper()
 
     ############
     # Public API
@@ -74,11 +74,11 @@ class Segment(models.Model):
         """
         if not user.id:
             return False
-        return SegmentHelper().segment_has_member(self.id, user.id)
+        return self.helper.segment_has_member(self.id, user.id)
 
     @live_sql
     def refresh(self):
-        members_count = SegmentHelper().refresh_segment(self.id, self.definition)
+        members_count = self.helper.refresh_segment(self.id, self.definition)
         Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count)
         self.refresh_from_db()
 
