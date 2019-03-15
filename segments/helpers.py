@@ -122,18 +122,14 @@ def execute_raw_user_query(sql):
     """
     Helper that returns a RawQuerySet of user objects.
     """
-    return get_user_model().objects.raw(sql).using(app_settings.SEGMENTS_EXEC_CONNECTION)
-
-def execute_raw_user_query(sql):
-    """
-    Helper that returns a RawQuerySet of user objects.
-    """
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         try:
             count_sql = 'select count(*) from %s ' % sql.lower().split('from')[1]
             user_sql = 'select %s from %s' % (get_user_model()._meta.pk.name, sql.lower().split('from')[1])
+            logger.info('segments user query count running: %s' % count_sql)
             count = cursor.execute(count_sql).fetchone()
             count = count[0]
+            logger.info('segments user query running: %s' % user_sql)
             result = cursor.execute(user_sql).fetchall()
             return [result, count]
         except Exception as e:
