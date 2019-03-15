@@ -130,7 +130,7 @@ def execute_raw_user_query(sql):
             count = cursor.fetchone()[0]
 
             # Fetch the raw queryset of ids
-            user_sql = 'select %s from %s' % (get_user_model()._meta.pk.name, sql.lower().split('from')[1])
+            user_sql = 'select %s.%s from %s' % (get_user_model()._meta.db_table, get_user_model()._meta.pk.name, sql.lower().split('from')[1])
             logger.info('segments user query running: %s' % user_sql)
             result = cursor.execute(user_sql)
             result = cursor.fetchall()
