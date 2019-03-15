@@ -15,8 +15,6 @@ class SegmentHelper(object):
 
     def __init__(self):
         self.redis = None
-        self.user_key = 'sm:%s'
-        self.refresh_key = 'sm:refresh'
 
     def get_redis(self):
         if not self.redis:
