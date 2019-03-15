@@ -54,9 +54,6 @@ Then add the following to your settings.py::
     # Recommended to set this to a readonly DB role. Defaults to 'default'.
     SEGMENTS_EXEC_CONNECTION = 'readonly'
     
-    # If you are using a readonly DB name, you must add the DB router.
-    DATABASE_ROUTERS = ['segments.router.SegmentsRouter',]
-    
 You're ready to go!
 
 ## Tests
