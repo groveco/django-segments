@@ -1,13 +1,15 @@
-from functools import wraps
+import logging
+
 from django.db import models, transaction, DatabaseError, OperationalError
 from django.core.exceptions import ValidationError
 from django.db.models.query_utils import InvalidQuery
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import signals
+from django.utils import timezone
+from functools import wraps
 from segments import app_settings
 from segments.helpers import SegmentHelper
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,7 @@ class Segment(models.Model):
     members_count = models.PositiveIntegerField(null=True, blank=True, default=0)
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(null=True, blank=True, db_index=True, auto_now=True)
+    recalculated_date = models.DateTimeField(null=True, blank=True)
 
     helper = SegmentHelper()
 
@@ -79,7 +82,7 @@ class Segment(models.Model):
     @live_sql
     def refresh(self):
         members_count = self.helper.refresh_segment(self.id, self.definition)
-        Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count)
+        Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count, recalculated_date=timezone.now())
         self.refresh_from_db()
 
     def __len__(self):
@@ -132,7 +135,7 @@ class SegmentMixin(object):
     @property
     def segments(self):
         """Return all the segments to which this member belongs."""
-        return Segment.objects.filter(id__in=SegmentHelper().get_user_segments(self.pk)).order_by('priority')
+        return Segment.objects.filter(id__in=SegmentHelper().get_user_segments(self.pk)).order_by('-priority')
 
     def is_member(self, segment):
         """Helper method. Proxies to segment.has_member(self)"""
