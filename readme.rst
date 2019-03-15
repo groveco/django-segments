@@ -1,8 +1,8 @@
-django-segments allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries,
-statis lists of IDs, or even by specifying a model type and a method on that model's .objects manager (e.g.
-ORM code).
+## Description
 
-Assumes your Django user model has an integer primary key called 'id'.
+The django-segments module allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries.
+
+Assume your Django user model has an integer primary key called 'id'.
 
 What you do with those segments is up to you. Create a segment, and use the mixin with your user class::
 
@@ -38,6 +38,8 @@ For instance::
 
 
 The code is thoroughly documented and tested.
+
+## Installation
 
 To use, first install (pypi package coming soon)::
 
