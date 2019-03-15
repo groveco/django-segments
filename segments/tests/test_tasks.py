@@ -1,5 +1,5 @@
 from django.test import TestCase
-from segments.tasks import refresh_segments, refresh_segment, refresh_user_segments
+from segments.tasks import refresh_segments, refresh_segment
 from segments.tests.factories import SegmentFactory, UserFactory, AllUserSegmentFactory
 import segments.app_settings
 from mock import Mock, patch
@@ -42,11 +42,13 @@ class TestTasks(TestCase):
         segments.app_settings.SEGMENTS_REFRESH_ON_SAVE = True
 
     def test_refresh_existing_segment(self):
-        UserFactory()
+        segments.app_settings.SEGMENTS_REFRESH_ON_SAVE = True
+        segments.app_settings.SEGMENTS_REFRES_ASYNC = False
+        u1 = UserFactory()
         s = AllUserSegmentFactory()
-        UserFactory()
+        u2 = UserFactory()
         self.assertEqual(len(s), 1)
-        refresh_segment(s.id)
+        s.refresh()
         self.assertEqual(len(s), 2)
 
     # Just making sure the logging code works
@@ -54,10 +56,3 @@ class TestTasks(TestCase):
         s = SegmentFactory()
         refresh_segment(s.id + 1)  #bad ID
         pass
-
-    def test_refresh_user_segments(self):
-        AllUserSegmentFactory()
-        u2 = UserFactory()
-        self.assertEqual(u2.segments.count(), 0)
-        refresh_user_segments(u2.id)
-        self.assertEqual(u2.segments.count(), 1)

@@ -7,5 +7,6 @@ If you are using the SEGMENTS_EXEC_CONNECTION setting, you must add this to your
 DATABASE_ROUTERS = ['segments.router.SegmentsRouter',]
 """
 SEGMENTS_EXEC_CONNECTION = getattr(settings, 'SEGMENTS_EXEC_CONNECTION', 'default')
+SEGMENTS_REDIS_URI = getattr(settings, 'SEGMENTS_REDIS_URI', None)
 SEGMENTS_REFRESH_ON_SAVE = getattr(settings, 'SEGMENTS_REFRESH_ON_SAVE', True)
 SEGMENTS_REFRESH_ASYNC = getattr(settings, 'SEGMENTS_REFRESH_ASYNC', False)

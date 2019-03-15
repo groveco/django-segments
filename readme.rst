@@ -41,7 +41,7 @@ The code is thoroughly documented and tested.
 
 To use, first install (pypi package coming soon)::
 
-    pip install -e git+https://github.com/epantry/django-segments#egg=segments
+    pip install -e git+https://github.com/groveco/django-segments#egg=segments
 
 Then add the following to your settings.py::
 
