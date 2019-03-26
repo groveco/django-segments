@@ -1,3 +1,6 @@
+import fakeredis
+import segments.helpers
+
 from django.test import TestCase
 from segments.tests.factories import SegmentFactory, UserFactory, user_table, AllUserSegmentFactory
 from segments import app_settings
@@ -9,6 +12,9 @@ class TestSegment(TestCase):
 
     def setUp(self):
         self.u = UserFactory()
+        segments.helpers.SegmentHelper.redis = fakeredis.FakeStrictRedis(
+                charset='utf-8',
+                decode_responses=True)
 
     def test_basic_segment(self):
         s = AllUserSegmentFactory()
@@ -114,6 +120,9 @@ class TestSegment(TestCase):
 class TestMixin(TestCase):
 
     def setUp(self):
+        segments.helpers.SegmentHelper.redis = fakeredis.FakeStrictRedis(
+                charset='utf-8',
+                decode_responses=True)
         self.u = UserFactory()
         self.s = AllUserSegmentFactory()
         app_settings.SEGMENTS_REFRESH_ASYNC = False
