@@ -12,8 +12,6 @@ DATABASES = {
     }
 }
 
-DATABASE_ROUTERS = ['segments.router.SegmentsRouter',]
-
 ROOT_URLCONF = 'segments.tests.urls'
 
 AUTH_USER_MODEL = 'tests.SegmentableUser'
@@ -46,4 +44,3 @@ AUTHENTICATION_BACKENDS = (
 )
 
 STATIC_URL = '/static/'
-SEGMENTS_REDIS_URI = 'redis://localhost:6379'
