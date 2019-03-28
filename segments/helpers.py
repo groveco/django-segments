@@ -65,11 +65,17 @@ class SegmentHelper(object):
 
     def get_segment_members(self, segment_id):
         live_key = self.segment_key % segment_id
-        return self.redis.smembers_iter(live_key)
+        return self.redis.sscan_iter(live_key)
 
     def get_refreshed_users(self):
         try:
-            return self.redis.smembers_iter(self.segment_member_refresh_key)
+            return self.redis.sscan_iter(self.segment_member_refresh_key)
+        except Exception as e:
+            return None
+
+    def remove_refreshed_user(self, user_id):
+        try:
+            self.redis.srem(self.segment_member_refresh_key, user_id)
         except Exception as e:
             return None
 
