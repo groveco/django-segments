@@ -67,6 +67,12 @@ class SegmentHelper(object):
         live_key = self.segment_key % segment_id
         return self.redis.smembers_iter(live_key)
 
+    def get_refreshed_users(self):
+        try:
+            return self.redis.smembers_iter(self.segment_member_refresh_key)
+        except Exception as e:
+            return None
+
     def refresh_segment(self, segment_id, sql):
         live_key = self.segment_key % segment_id
         add_key = 'add_s:%s:' % segment_id
