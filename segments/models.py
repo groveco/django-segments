@@ -10,6 +10,7 @@ from django.utils import timezone
 from functools import wraps
 from segments import app_settings
 from segments.helpers import SegmentHelper
+from segments.tasks import delete_segment
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,11 @@ def do_refresh(sender, instance, created, **kwargs):
         else:
             instance.refresh()
 signals.post_save.connect(do_refresh, sender=Segment)
+
+
+def do_delete(sender, instance, *args, **kwargs):
+    delete_segment.delay(instance.id)
+signals.post_delete.connect(do_delete, sender=Segment)
 
 
 class SegmentMixin(object):

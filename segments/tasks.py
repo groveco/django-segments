@@ -1,4 +1,5 @@
 from segments.models import Segment, SegmentExecutionError
+from segments.helpers import SegmentHelper
 from celery import task
 import logging
 
@@ -24,3 +25,8 @@ def refresh_segment(segment_id):
         s.refresh()
     except Segment.DoesNotExist:
         logger.exception("SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id)
+
+@task(name='delete_segment')
+def delete_segment(segment_id):
+    """Celery task to delete an individual Segment from Redis """
+    SegmentHelper().delete_segment(segment_id)
