@@ -40,6 +40,7 @@ class SegmentHelper(object):
         try:
             self.redis.sadd(user_key, segment_id)
             self.redis.sadd(live_key, user_id)
+            self.redis.sadd(self.segment_member_refresh_key, user_id)
         except Exception as e:
             return False
         return True
@@ -50,6 +51,7 @@ class SegmentHelper(object):
         try:
             self.redis.srem(user_key, segment_id)
             self.redis.srem(live_key, user_id)
+            self.redis.sadd(self.segment_member_refresh_key, user_id)
         except Exception as e:
             return False
         return True
@@ -110,10 +112,6 @@ class SegmentHelper(object):
         # Sync the segment for deleted members
         for user_id in self.redis.sscan_iter(del_key):
             self.remove_segment_membership(segment_id, user_id)
-
-        # Copy the new adds and deletes to the member changed list
-        self.redis.sunionstore(self.segment_member_refresh_key, del_key)
-        self.redis.sunionstore(self.segment_member_refresh_key, new_key)
 
         # Cleanup the sets
         for key in (add_key, del_key, new_key):
