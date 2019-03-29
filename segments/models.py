@@ -10,7 +10,6 @@ from django.utils import timezone
 from functools import wraps
 from segments import app_settings
 from segments.helpers import SegmentHelper
-from segments.tasks import delete_segment
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +79,12 @@ class Segment(models.Model):
             return False
         return self.helper.segment_has_member(self.id, user.id)
 
+    def add_member(self, user):
+        """ Helper method. Adds member to this segment. Returns a bool indicating the add status """
+        if not user.id:
+            return False
+        return self.helper.add_segment_membership(self.id, user.id)
+
     @live_sql
     def refresh(self):
         members_count = self.helper.refresh_segment(self.id, self.definition)
@@ -111,6 +116,7 @@ signals.post_save.connect(do_refresh, sender=Segment)
 
 
 def do_delete(sender, instance, *args, **kwargs):
+    from segments.tasks import delete_segment
     delete_segment.delay(instance.id)
 signals.post_delete.connect(do_delete, sender=Segment)
 
