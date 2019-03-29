@@ -55,4 +55,11 @@ class TestTasks(TestCase):
     def test_refresh_non_existing_segment(self):
         s = SegmentFactory()
         refresh_segment(s.id + 1)  #bad ID
-        pass
+
+    @patch('segments.helpers.remove_segment_membership')
+    @patch('segments.helpers.redis.sadd')
+    def test_delete_segment(self, p_redis_sadd, p_rsm):
+        s = AllUserSegmentFactory()
+        s.delete()
+        self.assertTrue(p_redis_sadd.called)
+        self.assertTrue(p_rsm.called)
