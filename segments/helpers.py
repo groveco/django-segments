@@ -36,16 +36,20 @@ class SegmentHelper(object):
 
     def add_segment_membership(self, segment_id, user_id):
         user_key = self.segment_member_key % user_id
+        live_key = self.segment_key % segment_id
         try:
             self.redis.sadd(user_key, segment_id)
+            self.redis.sadd(live_key, user_id)
         except Exception as e:
             return False
         return True
 
     def remove_segment_membership(self, segment_id, user_id):
         user_key = self.segment_member_key % user_id
+        live_key = self.segment_key % segment_id
         try:
             self.redis.srem(user_key, segment_id)
+            self.redis.srem(live_key, user_id)
         except Exception as e:
             return False
         return True
@@ -108,8 +112,8 @@ class SegmentHelper(object):
             self.remove_segment_membership(segment_id, user_id)
 
         # Copy the new adds and deletes to the member changed list
-        self.redis.sunionstore(new_key, self.segment_member_refresh_key, self.segment_member_refresh_key)
-        self.redis.sunionstore(del_key, self.segment_member_refresh_key, self.segment_member_refresh_key)
+        self.redis.sunionstore(self.segment_member_refresh_key, del_key)
+        self.redis.sunionstore(self.segment_member_refresh_key, new_key)
 
         # Cleanup the sets
         for key in (add_key, del_key, new_key):
@@ -143,7 +147,7 @@ def execute_raw_user_query(sql):
     """
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
     """
-    sql = sql.lower() if sql is not None else None
+    sql = str(sql).lower() if sql is not None else None
     if sql is None or 'from' not in sql or 'select' not in sql:
         return [[], 0]
 
@@ -157,8 +161,8 @@ def execute_raw_user_query(sql):
 
             # Fetch the raw queryset of ids
             user_sql = 'select %s.%s from %s' % (get_user_model()._meta.db_table, get_user_model()._meta.pk.name, sql.split('from')[1])
-            logger.info('segments user query running: %s' % user_sql)
-            result = cursor.execute(user_sql)
+            logger.info('SEGMENTS user query running: %s' % user_sql)
+            cursor.execute(user_sql)
             result = cursor.fetchall()
 
             # Success
