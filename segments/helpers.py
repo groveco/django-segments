@@ -143,16 +143,20 @@ def execute_raw_user_query(sql):
     """
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
     """
+    sql = sql.lower() if sql is not None else None
+    if sql is None or 'from' not in sql or 'select' not in sql:
+        return [[], 0]
+
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         try:
             # Fetch the anticipated row count
-            count_sql = 'select count(*) from %s ' % sql.lower().split('from')[1]
+            count_sql = 'select count(*) from %s ' % sql.split('from')[1]
             logger.info('segments user query count running: %s' % count_sql)
             cursor.execute(count_sql)
             count = cursor.fetchone()[0]
 
             # Fetch the raw queryset of ids
-            user_sql = 'select %s.%s from %s' % (get_user_model()._meta.db_table, get_user_model()._meta.pk.name, sql.lower().split('from')[1])
+            user_sql = 'select %s.%s from %s' % (get_user_model()._meta.db_table, get_user_model()._meta.pk.name, sql.split('from')[1])
             logger.info('segments user query running: %s' % user_sql)
             result = cursor.execute(user_sql)
             result = cursor.fetchall()
