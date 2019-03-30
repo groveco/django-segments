@@ -1,36 +1,24 @@
-from segments.models import Segment, SegmentExecutionError
-from django.contrib.auth import get_user_model
-from celery import task
-from time import time
 import logging
+from celery import task
+from segments.app_settings import SEGMENTS_CELERY_QUEUE
+from segments.helpers import SegmentHelper
+from segments.models import Segment, SegmentExecutionError
 
 logger = logging.getLogger(__name__)
 
 
-@task(name='segments_refresh')
+@task(name='refresh_segments', queue=SEGMENTS_CELERY_QUEUE)
 def refresh_segments():
-    """Celery task to refresh all segments, with timing information. Writes to the logger."""
-    start = time()
-    failed = []
+    """Celery task to refresh all segments."""
     segments = list(Segment.objects.all())
     for s in segments:
-        start_seg = time()
-
         try:
-            s.refresh()
+            refresh_segment.delay(s.id)
         except SegmentExecutionError:
-            failed.append(s)
-
-        end_seg = time()
-        logger.info("SEGMENTS: Refreshed segment %s (id: %s) in %s milliseconds"
-                    % (s.name, s.id, (end_seg - start_seg) * 1000))
-
-    end = time()
-    logger.info("SEGMENTS: Successfully refreshed %s segments. Failed to refresh %s segments. Complete in %s seconds"
-                % (len(segments)-len(failed), len(failed), end - start))
+            logger.exception("SEGMENTS: Error refreshing segment id %s", s.id)
 
 
-@task(name='segment_refresh')
+@task(name='refresh_segment', queue=SEGMENTS_CELERY_QUEUE)
 def refresh_segment(segment_id):
     """Celery task to refresh an individual Segment."""
     try:
@@ -38,3 +26,9 @@ def refresh_segment(segment_id):
         s.refresh()
     except Segment.DoesNotExist:
         logger.exception("SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id)
+
+
+@task(name='delete_segment', queue=SEGMENTS_CELERY_QUEUE)
+def delete_segment(segment_id):
+    """Celery task to delete an individual Segment from Redis """
+    SegmentHelper().delete_segment(segment_id)

@@ -32,6 +32,11 @@ class TestSegment(TestCase):
         s.refresh()
         self.assertTrue(s.has_member(self.u))
 
+    def test_user_adds_to_segment(self):
+        s = SegmentFactory()
+        s.add_member(self.u)
+        self.assertTrue(s.has_member(self.u))
+
     def test_user_doesnt_belong_to_segment(self):
         definition = 'select * from %s where id != %s' % (user_table(), self.u.id)
         s = SegmentFactory(definition=definition)

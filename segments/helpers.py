@@ -36,16 +36,22 @@ class SegmentHelper(object):
 
     def add_segment_membership(self, segment_id, user_id):
         user_key = self.segment_member_key % user_id
+        live_key = self.segment_key % segment_id
         try:
             self.redis.sadd(user_key, segment_id)
+            self.redis.sadd(live_key, user_id)
+            self.redis.sadd(self.segment_member_refresh_key, user_id)
         except Exception as e:
             return False
         return True
 
     def remove_segment_membership(self, segment_id, user_id):
         user_key = self.segment_member_key % user_id
+        live_key = self.segment_key % segment_id
         try:
             self.redis.srem(user_key, segment_id)
+            self.redis.srem(live_key, user_id)
+            self.redis.sadd(self.segment_member_refresh_key, user_id)
         except Exception as e:
             return False
         return True
@@ -65,7 +71,19 @@ class SegmentHelper(object):
 
     def get_segment_members(self, segment_id):
         live_key = self.segment_key % segment_id
-        return self.redis.smembers_iter(live_key)
+        return self.redis.sscan_iter(live_key)
+
+    def get_refreshed_users(self):
+        try:
+            return self.redis.sscan_iter(self.segment_member_refresh_key)
+        except Exception as e:
+            return None
+
+    def remove_refreshed_user(self, user_id):
+        try:
+            self.redis.srem(self.segment_member_refresh_key, user_id)
+        except Exception as e:
+            return None
 
     def refresh_segment(self, segment_id, sql):
         live_key = self.segment_key % segment_id
@@ -95,10 +113,6 @@ class SegmentHelper(object):
         for user_id in self.redis.sscan_iter(del_key):
             self.remove_segment_membership(segment_id, user_id)
 
-        # Copy the new adds and deletes to the member changed list
-        self.redis.sunionstore(new_key, self.segment_member_refresh_key, self.segment_member_refresh_key)
-        self.redis.sunionstore(del_key, self.segment_member_refresh_key, self.segment_member_refresh_key)
-
         # Cleanup the sets
         for key in (add_key, del_key, new_key):
             self.redis.delete(key)
@@ -108,6 +122,13 @@ class SegmentHelper(object):
 
         # Return the total number of members in this segment
         return self.redis.scard(live_key)
+
+    def delete_segment(self, segment_id):
+        segment_key = self.segment_key % segment_id
+        for user_id in self.redis.sscan_iter(segment_key):
+            self.remove_segment_membership(segment_id, user_id)
+            self.redis.sadd(self.segment_member_refresh_key, user_id)
+        self.redis.delete(segment_key)
 
     def diff_segment(self, key_1, key_2, key_3):
         try:
@@ -124,18 +145,22 @@ def execute_raw_user_query(sql):
     """
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
     """
+    sql = str(sql).lower() if sql is not None else None
+    if sql is None or 'from' not in sql or 'select' not in sql:
+        return [[], 0]
+
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         try:
             # Fetch the anticipated row count
-            count_sql = 'select count(*) from %s ' % sql.lower().split('from')[1]
+            count_sql = 'select count(*) from %s ' % sql.split('from')[1]
             logger.info('segments user query count running: %s' % count_sql)
             cursor.execute(count_sql)
             count = cursor.fetchone()[0]
 
             # Fetch the raw queryset of ids
-            user_sql = 'select %s.%s from %s' % (get_user_model()._meta.db_table, get_user_model()._meta.pk.name, sql.lower().split('from')[1])
-            logger.info('segments user query running: %s' % user_sql)
-            result = cursor.execute(user_sql)
+            user_sql = sql
+            logger.info('SEGMENTS user query running: %s' % user_sql)
+            cursor.execute(user_sql)
             result = cursor.fetchall()
 
             # Success
