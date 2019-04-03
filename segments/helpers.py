@@ -151,12 +151,6 @@ def execute_raw_user_query(sql):
 
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         try:
-            # Fetch the anticipated row count
-            count_sql = 'select count(*) from %s ' % sql.split('from')[1]
-            logger.info('segments user query count running: %s' % count_sql)
-            cursor.execute(count_sql)
-            count = cursor.fetchone()[0]
-
             # Fetch the raw queryset of ids
             user_sql = sql
             logger.info('SEGMENTS user query running: %s' % user_sql)
@@ -164,7 +158,7 @@ def execute_raw_user_query(sql):
             result = cursor.fetchall()
 
             # Success
-            return [result, count]
+            return [result, len(result)]
         except Exception as e:
             logger.error('Error: segments user query error: %s' % e)
 
