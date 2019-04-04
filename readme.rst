@@ -1,7 +1,7 @@
 Description
 -----------
 
-The django-segments module allows you slice and dice your user models into segments with Redis backed SQL queries.
+The django-segments module allows you to slice and dice your Django user models into segments with Redis backed SQL queries.
 
 Assume your Django user model has an integer primary key called 'id'.
 
