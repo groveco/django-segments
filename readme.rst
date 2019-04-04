@@ -1,4 +1,5 @@
-## Description
+Description
+-----------
 
 The django-segments module allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries.
 
@@ -58,6 +59,7 @@ Then add the following to your settings.py::
     
 You're ready to go!
 
-## Tests
+Tests
+-----
 
->>> python manage.py test --settings=segments.tests.settings
+``>>> python manage.py test --settings=segments.tests.settings``
