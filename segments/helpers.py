@@ -152,9 +152,8 @@ def execute_raw_user_query(sql):
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         try:
             # Fetch the raw queryset of ids
-            user_sql = sql
-            logger.info('SEGMENTS user query running: %s' % user_sql)
-            cursor.execute(user_sql)
+            logger.info('SEGMENTS user query running: %s' % sql)
+            cursor.execute(sql)
             result = cursor.fetchall()
 
             # Success
