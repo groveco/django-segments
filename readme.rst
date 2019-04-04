@@ -16,7 +16,7 @@ Create a segment, and use the mixin with your user class::
     ...
     
     u = SegmentableUser()
-    s = Segment(definition = "select * from %s" % SegmentableUser._meta.db_table)
+    s = Segment(definition = "select id from %s" % SegmentableUser._meta.db_table)
     s.refresh() # Run the query and save the results to Redis
     print u.is_member(s)  # "True"
 
