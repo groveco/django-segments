@@ -41,8 +41,8 @@ For instance::
 
 The code is thoroughly documented and tested.
 
-## Installation
-
+Installation
+------------
 To use, first install (pypi package coming soon)::
 
     pip install -e git+https://github.com/groveco/django-segments#egg=segments
