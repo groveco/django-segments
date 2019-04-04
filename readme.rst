@@ -1,11 +1,11 @@
 Description
 -----------
 
-The django-segments module allows you slice and dice your user models into SEGMENTS using arbitrary SQL queries.
+The django-segments module allows you slice and dice your user models into segments with Redis backed SQL queries.
 
 Assume your Django user model has an integer primary key called 'id'.
 
-What you do with those segments is up to you. Create a segment, and use the mixin with your user class::
+Create a segment, and use the mixin with your user class::
 
     from django.contrib.auth.models import AbstractUser
     from segments.models import SegmentMixin
@@ -17,6 +17,7 @@ What you do with those segments is up to you. Create a segment, and use the mixi
     
     u = SegmentableUser()
     s = Segment(definition = "select * from %s" % SegmentableUser._meta.db_table)
+    s.refresh() # Run the query and save the results to Redis
     print u.is_member(s)  # "True"
 
 You can use it for targeting marketing offers at certain users, building mailing lists, identifying "good" vs. "bad" customers, and quickly adding all sorts of properties on user records into the django admin without having to write or deploy code.
