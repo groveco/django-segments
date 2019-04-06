@@ -145,7 +145,7 @@ def execute_raw_user_query(sql):
     """
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
     """
-    if sql is None or 'from' not in sql.lower() or 'select' not in sql.lower():
+    if sql is None or 'select' not in sql.lower():
         return [[], 0]
 
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
