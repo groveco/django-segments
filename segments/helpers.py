@@ -145,19 +145,25 @@ def execute_raw_user_query(sql):
     """
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
     """
-    if sql is None or 'select' not in sql.lower():
+    if sql is None or not type(sql) == str or 'select' not in sql.lower():
         return [[], 0]
 
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         try:
-            # Fetch the raw queryset of ids
+            # Fetch the raw queryset of ids and count them
             logger.info('SEGMENTS user query running: %s' % sql)
             cursor.execute(sql)
             result = cursor.fetchall()
+            total = len(result)
+
+            # Guardrail: Try to ensure results are integers
+            if total > 0 and result[0]:
+                if not type(result[0][0]) == int:
+                    return [[], 0]
 
             # Success
-            return [result, len(result)]
+            return [result, total]
         except Exception as e:
-            logger.error('Error: segments user query error: %s' % e)
+            logger.exception('Error: segments user query error: %s' % e)
 
         return [[], 0]
