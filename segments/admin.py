@@ -14,8 +14,9 @@ class SegmentAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     list_display = ('name', 'priority', 'members_count')
     readonly_fields = ('created_date', 'members_count', 'updated_date', 'recalculated_date')
+    readonly_on_edit_fields = ('slug',)
     fields = ('name', 'slug', 'priority', 'members_count', 'definition', 'created_date', 'updated_date', 'recalculated_date')
-    ordering = ('-priority',)
+    ordering = ('name',)
 
     actions = ('refresh',)
 
@@ -31,6 +32,13 @@ class SegmentAdmin(admin.ModelAdmin):
         if app_settings.SEGMENTS_REFRESH_ASYNC and (not change or app_settings.SEGMENTS_REFRESH_ON_SAVE):
             messages.add_message(request, messages.INFO, "Segment refresh started...")
         return super(SegmentAdmin, self).save_model(request, obj, form, change)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            self.prepopulated_fields = {}
+            return self.readonly_fields[:] + self.readonly_on_edit_fields
+        else:
+            return self.readonly_fields
 
 
 admin.site.register(Segment, SegmentAdmin)
