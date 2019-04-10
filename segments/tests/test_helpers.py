@@ -115,7 +115,7 @@ class TestSegmentHelper(TestCase):
         self.assertEquals(len(list(chunk_items([], len(members), 1))[0]), 0)
 
     def test_raw_user_query(self):
-        invalid = ['', None, 12345]
+        invalid = ['', None, 12345, "select 'pretendemail'"]
         for i in invalid:
             items, count = execute_raw_user_query(i)
             self.assertEquals(count, 0)
