@@ -25,8 +25,8 @@ class Migration(migrations.Migration):
             name='SegmentMembership',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('segment', models.ForeignKey(related_name='member_set', to='segments.Segment')),
-                ('user', models.ForeignKey(related_name='segment_set', to=settings.AUTH_USER_MODEL)),
+                ('segment', models.ForeignKey(related_name='member_set', to='segments.Segment', on_delete=models.deletion.CASCADE)),
+                ('user', models.ForeignKey(related_name='segment_set', to=settings.AUTH_USER_MODEL, on_delete=models.deletion.CASCADE)),
             ],
         ),
         migrations.AlterUniqueTogether(
