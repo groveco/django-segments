@@ -95,6 +95,12 @@ class Segment(models.Model):
         """Calling len() on a segment returns the number of members of that segment."""
         return self.members_count
 
+    # A lot of code that interfaces with Django models expects model instances to be
+    # truthy, to distingiush them from `None`. Since we override `__len__`, `Segment`s
+    # with no members will be incorrectly treated as non-existent.
+    def __bool__(self):
+        return True
+
     def __str__(self):
         return self.name
 
