@@ -31,7 +31,7 @@ class SegmentHelper(object):
         try:
             exists = self.redis.sismember(user_key, segment_id)
         except Exception as e:
-            pass
+            logger.info('SEGMENTS: segment_has_member(%s, %s): %s' % (segment_id, user_id, e))
         return exists
 
     def add_segment_membership(self, segment_id, user_id):
@@ -42,6 +42,7 @@ class SegmentHelper(object):
             self.redis.sadd(live_key, user_id)
             self.redis.sadd(self.segment_member_refresh_key, user_id)
         except Exception as e:
+            logger.info('SEGMENTS: add_segment_membership(%s, %s): %s' % (segment_id, user_id, e))
             return False
         return True
 
@@ -53,6 +54,7 @@ class SegmentHelper(object):
             self.redis.srem(live_key, user_id)
             self.redis.sadd(self.segment_member_refresh_key, user_id)
         except Exception as e:
+            logger.info('SEGMENTS: remove_segment_membership(%s, %s): %s' % (segment_id, user_id, e))
             return False
         return True
 
@@ -62,7 +64,7 @@ class SegmentHelper(object):
         try:
             items = self.redis.smembers(user_key)
         except Exception as e:
-            pass
+            logger.info('SEGMENTS: get_user_segments(%s): %s' % (user_id, e))
         return items
 
     def get_segment_membership_count(self, segment_id):
@@ -134,7 +136,7 @@ class SegmentHelper(object):
         try:
             self.redis.sdiffstore(key_3, key_1, key_2)
         except Exception as e:
-            pass
+            logger.info('SEGMENTS: diff_segment(%s, %s, %s): %s' % (key_1, key_2, key_3, e))
 
 
 def chunk_items(items, length, chunk_size):
