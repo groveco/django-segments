@@ -151,21 +151,16 @@ def execute_raw_user_query(sql):
         return [[], 0]
 
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
-        try:
-            # Fetch the raw queryset of ids and count them
-            logger.exception('SEGMENTS user query running: %s' % sql)
-            cursor.execute(sql)
-            result = cursor.fetchall()
-            total = len(result)
+        # Fetch the raw queryset of ids and count them
+        logger.exception('SEGMENTS user query running: %s' % sql)
+        cursor.execute(sql)
+        result = cursor.fetchall() or []
+        total = len(result)
 
-            # Guardrail: Try to ensure results are integers
-            if total > 0 and result[0]:
-                if not type(result[0][0]) == int:
-                    return [[], 0]
+        # Guardrail: Try to ensure results are integers
+        if total > 0 and result[0]:
+            if not type(result[0][0]) == int:
+                return [[], 0]
 
-            # Success
-            return [result, total]
-        except Exception as e:
-            logger.exception('Error: segments user query error: %s' % e)
+        return [result, total]
 
-        return [[], 0]
