@@ -152,7 +152,7 @@ def execute_raw_user_query(sql):
 
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         # Fetch the raw queryset of ids and count them
-        logger.exception('SEGMENTS user query running: %s' % sql)
+        logger.info('SEGMENTS user query running: %s' % sql)
         cursor.execute(sql)
         result = cursor.fetchall() or []
         total = len(result)
@@ -160,7 +160,7 @@ def execute_raw_user_query(sql):
         # Guardrail: Try to ensure results are integers
         if total > 0 and result[0]:
             if not type(result[0][0]) == int:
-                return [[], 0]
+                raise RuntimeError('Query returned non-integer results')
 
         return [result, total]
 
