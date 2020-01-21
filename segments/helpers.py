@@ -107,12 +107,22 @@ class SegmentHelper(object):
         self.redis.sinterstore(live_key, add_key)
 
         # Sync the segment for new members
-        for user_id in self.redis.sscan_iter(new_key):
-            self.add_segment_membership(segment_id, user_id)
+        self.redis.sunionstore(
+            self.segment_member_refresh_key,
+            self.segment_member_refresh_key,
+            new_key
+        )
+        for user_key in (self.segment_member_key % i for i in self.redis.sscan_iter(new_key)):
+            self.redis.sadd(user_key, segment_id)
 
         # Sync the segment for deleted members
-        for user_id in self.redis.sscan_iter(del_key):
-            self.remove_segment_membership(segment_id, user_id)
+        self.redis.sunionstore(
+            self.segment_member_refresh_key,
+            self.segment_member_refresh_key,
+            del_key
+        )
+        for user_key in (self.segment_member_key % i for i in self.redis.sscan_iter(del_key)):
+            self.redis.srem(user_key, segment_id)
 
         # Cleanup the sets
         for key in (add_key, del_key, new_key):
