@@ -159,7 +159,7 @@ def execute_raw_user_query(sql):
 
         # Guardrail: Try to ensure results are integers
         if total > 0 and result[0]:
-            if not type(result[0][0]) == int:
+            if not all(isinstance(i, int) for i in result[0]):
                 raise RuntimeError('Query returned non-integer results')
 
         return [result, total]
