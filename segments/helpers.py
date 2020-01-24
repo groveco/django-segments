@@ -157,10 +157,10 @@ def execute_raw_user_query(sql):
         result = cursor.fetchall() or []
         total = len(result)
 
-        # Guardrail: Try to ensure results are integers
+        # Guardrail: Filter out None results
         if total > 0 and result[0]:
-            if not all(isinstance(i, int) for i in result[0]):
-                raise RuntimeError('Query returned non-integer results')
+            filtered_results = [i for i in result if i[0] is not None]
+            return [filtered_results, total]
 
         return [result, total]
 
