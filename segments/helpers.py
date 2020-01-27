@@ -12,8 +12,8 @@ class SegmentHelper(object):
     segment_member_key = 'sm:%s'
     segment_member_refresh_key = 'sm:refresh'
 
-    def __init__(self):
-        self.__redis = None
+    def __init__(self, redis_obj=None):
+        self.__redis = redis_obj
 
     @property
     def redis(self):
