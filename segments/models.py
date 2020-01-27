@@ -104,6 +104,7 @@ class Segment(models.Model):
     def __str__(self):
         return self.name
 
+
 def do_refresh(sender, instance, created, **kwargs):
     """
     Connected to Segment's post_save signal.
