@@ -129,7 +129,6 @@ class SegmentHelper(object):
         segment_key = self.segment_key % segment_id
         for user_id in self.redis.sscan_iter(segment_key):
             self.remove_segment_membership(segment_id, user_id)
-            self.redis.sadd(self.segment_member_refresh_key, user_id)
         self.redis.delete(segment_key)
 
     def diff_segment(self, key_1, key_2, key_3):
