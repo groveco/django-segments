@@ -121,12 +121,6 @@ class TestSegmentHelper(TestCase):
             self.assertEquals(len(list(chunk_items(members, len(members), i))[0]), i)
         self.assertEquals(len(list(chunk_items([], len(members), 1))[0]), 0)
 
-
-class TestRawUserQuery(TestCase):
-
-    def setUp(self):
-        pass
-
     def test_raw_user_query_returns_empty_list(self):
         empty_queries = [
             '',
@@ -139,11 +133,11 @@ class TestRawUserQuery(TestCase):
             items = execute_raw_user_query(query)
             self.assertEquals(len(items), 0)
 
-        users = UserFactory.create_batch(3)
+        user = UserFactory()
         valid_sql = 'select id from %s' % user_table()
         items = execute_raw_user_query(valid_sql)
-        self.assertEquals(len(items), 3)
+        self.assertEquals(len(items), 2)
         self.assertListEqual(
-            [u.id for u in users],
+            [self.user.id, user.id],
             [i[0] for i in items]
         )

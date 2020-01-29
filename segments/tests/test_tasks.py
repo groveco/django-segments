@@ -1,4 +1,5 @@
 import fakeredis
+from celery import Celery
 from django.test import TestCase, override_settings
 
 from segments.helpers import SegmentHelper
@@ -7,6 +8,10 @@ from segments.tasks import refresh_segments, refresh_segment
 from segments.tests.factories import SegmentFactory, UserFactory, AllUserSegmentFactory, user_table
 import segments.app_settings
 from mock import Mock, patch
+
+# Make a celery app
+test_celery_app = Celery()
+test_celery_app.config_from_object('django.conf:settings', namespace='CELERY')
 
 
 class TestTasks(TestCase):
