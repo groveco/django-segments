@@ -1,7 +1,6 @@
 import logging
 import redis
 
-from django.contrib.auth import get_user_model
 from django.db import connections
 from segments import app_settings
 
@@ -94,8 +93,8 @@ class SegmentHelper(object):
         del_key = 'del_s:%s:' % segment_id
 
         # Run the SQL query and store the latest set members
-        members, count = execute_raw_user_query(sql)
-        for id_block in chunk_items(members, count, 10000):
+        members = [m for m in execute_raw_user_query(sql) if m is not None]
+        for id_block in chunk_items(members, len(members), 10000):
             self.redis.sadd(add_key, *set(x[0] for x in id_block))
 
         # Store any new member adds
@@ -142,24 +141,18 @@ def chunk_items(items, length, chunk_size):
     for item in range(0, length, chunk_size):
         yield items[item:item + chunk_size]
 
+
 def execute_raw_user_query(sql):
     """
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
     """
     if sql is None or not type(sql) == str or 'select' not in sql.lower():
-        return [[], 0]
+        return []
 
     with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         # Fetch the raw queryset of ids and count them
         logger.info('SEGMENTS user query running: %s' % sql)
         cursor.execute(sql)
         result = cursor.fetchall() or []
-        total = len(result)
 
-        # Guardrail: Try to ensure results are integers
-        if total > 0 and result[0]:
-            if not type(result[0][0]) == int:
-                raise RuntimeError('Query returned non-integer results')
-
-        return [result, total]
-
+        return result

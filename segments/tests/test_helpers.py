@@ -115,13 +115,18 @@ class TestSegmentHelper(TestCase):
         self.assertEquals(len(list(chunk_items([], len(members), 1))[0]), 0)
 
     def test_raw_user_query(self):
-        invalid = ['', None, 12345, "select 'pretendemail'"]
+        invalid = [
+            '',
+            None,
+            12345,
+            "select 'pretendemail'",
+            "SELECT * FROM ( VALUES (0), (NULL),) as foo;",
+            "SELECT * FROM ( VALUES (0), ('0'),) as foo;",
+        ]
         for i in invalid:
-            items, count = execute_raw_user_query(i)
-            self.assertEquals(count, 0)
+            items = execute_raw_user_query(i)
             self.assertEquals(len(items), 0)
 
         valid_sql = 'select * from %s' % user_table()
-        items, count = execute_raw_user_query(valid_sql)
-        self.assertEquals(count, 1)
+        items = execute_raw_user_query(valid_sql)
         self.assertEquals(len(items), 1)
