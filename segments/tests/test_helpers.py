@@ -1,6 +1,8 @@
 import fakeredis
+from django.db.utils import OperationalError
 from django.test import TestCase
 from segments.helpers import SegmentHelper, chunk_items, execute_raw_user_query
+from segments.models import Segment
 from segments.tests.factories import SegmentFactory, UserFactory, user_table
 from mock import patch
 
@@ -8,11 +10,16 @@ from mock import patch
 class TestSegmentHelper(TestCase):
 
     def setUp(self):
-        self.helper = SegmentHelper()
         self.user = UserFactory()
-        SegmentHelper.redis = fakeredis.FakeStrictRedis(
-            charset='utf-8',
-            decode_responses=True)
+        self.helper = SegmentHelper(
+            redis_obj=fakeredis.FakeStrictRedis(
+                charset='utf-8',
+                decode_responses=True
+            )
+        )
+
+        self.helper.redis.flushdb()
+        Segment.helper = self.helper
 
     def test_add_segment_membership(self):
         s = SegmentFactory()
@@ -79,7 +86,7 @@ class TestSegmentHelper(TestCase):
     def test_refresh_segment_invalid_sql(self):
         s = SegmentFactory()
         invalid_sql = 'abc select '
-        self.assertEquals(self.helper.refresh_segment(s.id, invalid_sql), 0)
+        self.assertRaises(OperationalError, self.helper.refresh_segment, s.id, invalid_sql)
 
     def test_refresh_segment_valid_sql(self):
         s = SegmentFactory()
@@ -114,19 +121,23 @@ class TestSegmentHelper(TestCase):
             self.assertEquals(len(list(chunk_items(members, len(members), i))[0]), i)
         self.assertEquals(len(list(chunk_items([], len(members), 1))[0]), 0)
 
-    def test_raw_user_query(self):
-        invalid = [
+    def test_raw_user_query_returns_empty_list(self):
+        empty_queries = [
             '',
             None,
-            12345,
-            "select 'pretendemail'",
-            "SELECT * FROM ( VALUES (0), (NULL),) as foo;",
-            "SELECT * FROM ( VALUES (0), ('0'),) as foo;",
+            1,
+            True,
+            'any string that does not contain s.elect'
         ]
-        for i in invalid:
-            items = execute_raw_user_query(i)
+        for query in empty_queries:
+            items = execute_raw_user_query(query)
             self.assertEquals(len(items), 0)
 
-        valid_sql = 'select * from %s' % user_table()
+        user = UserFactory()
+        valid_sql = 'select id from %s' % user_table()
         items = execute_raw_user_query(valid_sql)
-        self.assertEquals(len(items), 1)
+        self.assertEquals(len(items), 2)
+        self.assertListEqual(
+            [self.user.id, user.id],
+            [i[0] for i in items]
+        )
