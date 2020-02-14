@@ -6,6 +6,8 @@ from segments import app_settings
 
 logger = logging.getLogger(__name__)
 
+REDIS_SSCAN_COUNT = app_settings.SEGMENTS_REDIS_SSCAN_COUNT
+
 
 class SegmentHelper(object):
     segment_key = 's:%s'
@@ -112,8 +114,13 @@ class SegmentHelper(object):
             self.segment_member_refresh_key,
             new_key
         )
-        for user_key in (self.segment_member_key % i for i in self.redis.sscan_iter(new_key)):
-            self.redis.sadd(user_key, segment_id)
+        cursor = '0'
+        while cursor != 0:
+            cursor, user_ids = self.redis.sscan(new_key, cursor, count=REDIS_SSCAN_COUNT)
+            with self.redis.pipeline(transaction=False) as pipeline:
+                for user_key in (self.segment_member_key % user_id for user_id in user_ids):
+                    pipeline.sadd(user_key, segment_id)
+                pipeline.execute()
 
         # Sync the segment for deleted members
         self.redis.sunionstore(
@@ -121,8 +128,13 @@ class SegmentHelper(object):
             self.segment_member_refresh_key,
             del_key
         )
-        for user_key in (self.segment_member_key % i for i in self.redis.sscan_iter(del_key)):
-            self.redis.srem(user_key, segment_id)
+        cursor = '0'
+        while cursor != 0:
+            cursor, user_ids = self.redis.sscan(del_key, cursor, count=REDIS_SSCAN_COUNT)
+            with self.redis.pipeline(transaction=False) as pipeline:
+                for user_key in (self.segment_member_key % user_id for user_id in user_ids):
+                    pipeline.srem(user_key, segment_id)
+                pipeline.execute()
 
         # Cleanup the sets
         for key in (add_key, del_key, new_key):
