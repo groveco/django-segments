@@ -31,18 +31,6 @@ class TestSegmentHelper(TestCase):
         s.add_member(self.user)
         self.assertTrue(self.helper.segment_has_member(s.id, self.user.id))
 
-    def test_segment_has_member_nonexistant_segment(self):
-        s = SegmentFactory()
-        s.add_member(self.user)
-        self.helper.remove_segment_membership(99999, self.user.id)
-        self.assertTrue(self.helper.segment_has_member(s.id, self.user.id))
-
-    def test_remove_segment_membership_segment_exists(self):
-        s = SegmentFactory()
-        s.add_member(self.user)
-        self.helper.remove_segment_membership(s.id, self.user.id)
-        self.assertFalse(self.helper.segment_has_member(s.id, self.user.id))
-
     def test_get_user_segments_when_segment_exists(self):
         s = SegmentFactory()
         s.add_member(self.user)

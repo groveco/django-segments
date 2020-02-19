@@ -47,18 +47,6 @@ class SegmentHelper(object):
             return False
         return True
 
-    def remove_segment_membership(self, segment_id, user_id):
-        user_key = self.segment_member_key % user_id
-        live_key = self.segment_key % segment_id
-        try:
-            self.redis.srem(user_key, segment_id)
-            self.redis.srem(live_key, user_id)
-            self.redis.sadd(self.segment_member_refresh_key, user_id)
-        except Exception as e:
-            logger.exception('SEGMENTS: remove_segment_membership(%s, %s): %s' % (segment_id, user_id, e))
-            return False
-        return True
-
     def get_user_segments(self, user_id):
         user_key = self.segment_member_key % user_id
         items = []
