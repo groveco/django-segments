@@ -88,10 +88,10 @@ class SegmentHelper(object):
             self.redis.sadd(add_key, *set(x[0] for x in id_block))
 
         # Store any new member adds
-        self.diff_segment(add_key, live_key, new_key)
+        self.redis.sdiffstore(new_key, add_key, live_key)
 
         # Store any member removals
-        self.diff_segment(live_key, add_key, del_key)
+        self.redis.sdiffstore(del_key, live_key, add_key)
 
         # Sync the current set members to the live set
         self.redis.sinterstore(live_key, add_key)
@@ -145,12 +145,6 @@ class SegmentHelper(object):
                     self.redis.srem(user_key, segment_id)
                 pipeline.execute()
         self.redis.delete(segment_key)
-
-    def diff_segment(self, key_1, key_2, key_3):
-        try:
-            self.redis.sdiffstore(key_3, key_1, key_2)
-        except Exception as e:
-            logger.exception('SEGMENTS: diff_segment(%s, %s, %s): %s' % (key_1, key_2, key_3, e))
 
 
 def chunk_items(items, length, chunk_size):
