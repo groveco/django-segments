@@ -148,8 +148,14 @@ class SegmentHelper(object):
 
     def delete_segment(self, segment_id):
         segment_key = self.segment_key % segment_id
-        for user_id in self.redis.sscan_iter(segment_key):
-            self.remove_segment_membership(segment_id, user_id)
+        cursor = '0'
+        while cursor != 0:
+            cursor, user_ids = self.redis.sscan(segment_key, count=REDIS_SSCAN_COUNT)
+            self.redis.sadd(self.segment_member_refresh_key, *user_ids)
+            with self.redis.pipeline(transaction=False) as pipeline:
+                for user_key in (self.segment_member_key % user_id for user_id in user_ids):
+                    self.redis.srem(user_key, segment_id)
+                pipeline.execute()
         self.redis.delete(segment_key)
 
     def diff_segment(self, key_1, key_2, key_3):
