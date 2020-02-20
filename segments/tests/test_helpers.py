@@ -111,7 +111,7 @@ class TestSegmentHelper(TestCase):
         valid_sql = 'select id from %s' % user_table()
         items = execute_raw_user_query(valid_sql)
         self.assertEquals(len(items), 2)
-        self.assertListEqual(
-            [self.user.id, user.id],
-            [i[0] for i in items]
+        self.assertSetEqual(
+            set([self.user.id, user.id]),
+            set([i[0] for i in items])
         )
