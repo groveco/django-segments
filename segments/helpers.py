@@ -89,43 +89,45 @@ class SegmentHelper(object):
             self.redis.sadd(add_key, *set(x[0] for x in id_block))
 
         # Store any new member adds
-        self.redis.sdiffstore(new_key, add_key, live_key)
+        self.redis.sdiffstore(
+            dest=new_key,
+            keys=[add_key, live_key]
+        )
 
         # Store any member removals
-        self.redis.sdiffstore(del_key, live_key, add_key)
+        self.redis.sdiffstore(
+            dest=del_key,
+            keys=[live_key, add_key]
+        )
 
         # Sync the current set members to the live set
-        self.redis.sinterstore(live_key, add_key)
+        self.redis.sinterstore(
+            dest=live_key,
+            keys=[add_key]
+        )
 
         # Sync the segment for new members
         self.redis.sunionstore(
-            self.segment_member_refresh_key,
-            self.segment_member_refresh_key,
-            new_key
+            dest=self.segment_member_refresh_key,
+            keys=[self.segment_member_refresh_key, new_key]
         )
-        with self.redis.pipeline(transaction=False) as pipeline:
-            for user_id in self.redis.sscan_iter(new_key, count=REDIS_SSCAN_COUNT):
-                pipeline.sadd(self.segment_member_key % user_id, segment_id)
-                if len(pipeline) >= BATCH_SIZE:
-                    pipeline.execute()
-            pipeline.execute()
+        self.run_pipeline(
+            key=new_key,
+            operation=lambda pipeline, user_id: pipeline.sadd(self.segment_member_key % user_id, segment_id)
+        )
 
         # Sync the segment for deleted members
         self.redis.sunionstore(
-            self.segment_member_refresh_key,
-            self.segment_member_refresh_key,
-            del_key
+            dest=self.segment_member_refresh_key,
+            keys=[self.segment_member_refresh_key, del_key]
         )
-        with self.redis.pipeline(transaction=False) as pipeline:
-            for user_id in self.redis.sscan_iter(del_key, count=REDIS_SSCAN_COUNT):
-                pipeline.srem(self.segment_member_key % user_id, segment_id)
-                if len(pipeline) >= BATCH_SIZE:
-                    pipeline.execute()
-            pipeline.execute()
+        self.run_pipeline(
+            key=del_key,
+            operation=lambda pipeline, user_id: pipeline.srem(self.segment_member_key % user_id, segment_id)
+        )
 
         # Cleanup the sets
-        for key in (add_key, del_key, new_key):
-            self.redis.delete(key)
+        self.redis.delete(add_key, del_key, new_key)
 
         # Set a one week expire on the refresh queue in case it's not of interest to the consumer
         self.redis.expire(self.segment_member_refresh_key, 604800)
@@ -136,15 +138,26 @@ class SegmentHelper(object):
     def delete_segment(self, segment_id):
         segment_key = self.segment_key % segment_id
 
+        # Add all segment users to refreshed users set
+        self.redis.sunionstore(
+            dest=self.segment_member_refresh_key,
+            keys=[self.segment_member_refresh_key, segment_key]
+        )
+
+        self.run_pipeline(
+            segment_key,
+            operation=lambda pipeline, user_id: pipeline.srem(self.segment_member_key % user_id, segment_id)
+        )
+
+        self.redis.delete(segment_key)
+
+    def run_pipeline(self, key, operation=lambda pipeline, user_id: None):
         with self.redis.pipeline(transaction=False) as pipeline:
-            for user_id in self.redis.sscan_iter(segment_key, count=REDIS_SSCAN_COUNT):
-                pipeline.sadd(self.segment_member_refresh_key, user_id)
-                pipeline.srem(self.segment_member_key % user_id, segment_id)
+            for user_id in self.redis.sscan_iter(key, count=REDIS_SSCAN_COUNT):
+                operation(pipeline, user_id)
                 if len(pipeline) >= BATCH_SIZE:
                     pipeline.execute()
             pipeline.execute()
-
-        self.redis.delete(segment_key)
 
 
 def chunk_items(items, length, chunk_size):
