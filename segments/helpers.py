@@ -166,11 +166,6 @@ class SegmentHelper(object):
             pipeline.execute()
 
 
-def chunk_items(items, length, chunk_size):
-    for item in range(0, length, chunk_size):
-        yield items[item:item + chunk_size]
-
-
 def execute_raw_user_query(sql):
     """
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
