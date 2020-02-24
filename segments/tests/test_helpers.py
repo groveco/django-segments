@@ -31,18 +31,6 @@ class TestSegmentHelper(TestCase):
         s.add_member(self.user)
         self.assertTrue(self.helper.segment_has_member(s.id, self.user.id))
 
-    def test_segment_has_member_nonexistant_segment(self):
-        s = SegmentFactory()
-        s.add_member(self.user)
-        self.helper.remove_segment_membership(99999, self.user.id)
-        self.assertTrue(self.helper.segment_has_member(s.id, self.user.id))
-
-    def test_remove_segment_membership_segment_exists(self):
-        s = SegmentFactory()
-        s.add_member(self.user)
-        self.helper.remove_segment_membership(s.id, self.user.id)
-        self.assertFalse(self.helper.segment_has_member(s.id, self.user.id))
-
     def test_get_user_segments_when_segment_exists(self):
         s = SegmentFactory()
         s.add_member(self.user)
@@ -101,20 +89,6 @@ class TestSegmentHelper(TestCase):
         self.assertFalse(self.helper.segment_has_member(s.id, self.user.id))
         self.assertTrue(p_delete_segment.called)
 
-    def test_diff_segment(self):
-        s1 = SegmentFactory()
-        u1 = UserFactory()
-        s1.add_member(u1)
-        s2 = SegmentFactory()
-        u2 = UserFactory()
-        s2.add_member(u1)
-        s2.add_member(u2)
-
-        s1_key = self.helper.segment_key % s1.id
-        s2_key = self.helper.segment_key % s2.id
-        self.helper.diff_segment(s2_key, s1_key, 'diff_test')
-        self.assertEquals(self.helper.redis.smembers('diff_test'), {str(u2.id)})
-
     def test_chunk_items(self):
         members = [1, 2, 3]
         for i in members:
@@ -137,7 +111,7 @@ class TestSegmentHelper(TestCase):
         valid_sql = 'select id from %s' % user_table()
         items = execute_raw_user_query(valid_sql)
         self.assertEquals(len(items), 2)
-        self.assertListEqual(
-            [self.user.id, user.id],
-            [i[0] for i in items]
+        self.assertSetEqual(
+            set([self.user.id, user.id]),
+            set([i[0] for i in items])
         )
