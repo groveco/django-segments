@@ -84,9 +84,10 @@ class SegmentHelper(object):
         del_key = 'del_s:%s:' % segment_id
 
         # Run the SQL query and store the latest set members
-        members = [m for m in execute_raw_user_query(sql) if m is not None]
-        for id_block in chunk_items(members, len(members), 10000):
-            self.redis.sadd(add_key, *set(x[0] for x in id_block))
+        self.run_pipeline(
+            iterable=(user_id for user_id in execute_raw_user_query(sql=sql) if user_id is not None),
+            operation=lambda pipeline, user_id: pipeline.sadd(add_key, user_id)
+        )
 
         # Store any new member adds
         self.redis.sdiffstore(
@@ -111,8 +112,10 @@ class SegmentHelper(object):
             dest=self.segment_member_refresh_key,
             keys=[self.segment_member_refresh_key, new_key]
         )
+
+        # Add segment id to each member's sets
         self.run_pipeline(
-            key=new_key,
+            iterable=self.redis.sscan_iter(new_key, count=REDIS_SSCAN_COUNT),
             operation=lambda pipeline, user_id: pipeline.sadd(self.segment_member_key % user_id, segment_id)
         )
 
@@ -121,8 +124,10 @@ class SegmentHelper(object):
             dest=self.segment_member_refresh_key,
             keys=[self.segment_member_refresh_key, del_key]
         )
+
+        # Remove segment id from member's sets
         self.run_pipeline(
-            key=del_key,
+            iterable=self.redis.sscan_iter(del_key, count=REDIS_SSCAN_COUNT),
             operation=lambda pipeline, user_id: pipeline.srem(self.segment_member_key % user_id, segment_id)
         )
 
@@ -144,25 +149,21 @@ class SegmentHelper(object):
             keys=[self.segment_member_refresh_key, segment_key]
         )
 
+        # Remove segment id from member's sets
         self.run_pipeline(
-            segment_key,
+            iterable=self.redis.sscan_iter(segment_key, count=REDIS_SSCAN_COUNT),
             operation=lambda pipeline, user_id: pipeline.srem(self.segment_member_key % user_id, segment_id)
         )
 
         self.redis.delete(segment_key)
 
-    def run_pipeline(self, key, operation=lambda pipeline, user_id: None):
+    def run_pipeline(self, iterable, operation=lambda pipeline, user_id: None):
         with self.redis.pipeline(transaction=False) as pipeline:
-            for user_id in self.redis.sscan_iter(key, count=REDIS_SSCAN_COUNT):
+            for user_id in iterable:
                 operation(pipeline, user_id)
                 if len(pipeline) >= BATCH_SIZE:
                     pipeline.execute()
             pipeline.execute()
-
-
-def chunk_items(items, length, chunk_size):
-    for item in range(0, length, chunk_size):
-        yield items[item:item + chunk_size]
 
 
 def execute_raw_user_query(sql):
@@ -170,12 +171,12 @@ def execute_raw_user_query(sql):
     Helper that returns an array containing a RawQuerySet of user ids and their total count.
     """
     if sql is None or not type(sql) == str or 'select' not in sql.lower():
-        return []
+        return
 
-    with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
+    with connections[app_settings.SEGMENTS_EXEC_CONNECTION].chunked_cursor() as cursor:
         # Fetch the raw queryset of ids and count them
         logger.info('SEGMENTS user query running: %s' % sql)
         cursor.execute(sql)
-        result = cursor.fetchall() or []
 
-        return result
+        for row in cursor:
+            yield row[0]

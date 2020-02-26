@@ -1,7 +1,7 @@
 import fakeredis
 from django.db.utils import OperationalError
 from django.test import TestCase
-from segments.helpers import SegmentHelper, chunk_items, execute_raw_user_query
+from segments.helpers import SegmentHelper, execute_raw_user_query
 from segments.models import Segment
 from segments.tests.factories import SegmentFactory, UserFactory, user_table
 from mock import patch
@@ -89,12 +89,6 @@ class TestSegmentHelper(TestCase):
         self.assertFalse(self.helper.segment_has_member(s.id, self.user.id))
         self.assertTrue(p_delete_segment.called)
 
-    def test_chunk_items(self):
-        members = [1, 2, 3]
-        for i in members:
-            self.assertEquals(len(list(chunk_items(members, len(members), i))[0]), i)
-        self.assertEquals(len(list(chunk_items([], len(members), 1))[0]), 0)
-
     def test_raw_user_query_returns_empty_list(self):
         empty_queries = [
             '',
@@ -104,14 +98,13 @@ class TestSegmentHelper(TestCase):
             'any string that does not contain s.elect'
         ]
         for query in empty_queries:
-            items = execute_raw_user_query(query)
-            self.assertEquals(len(items), 0)
+            items_generator = execute_raw_user_query(query)
+            self.assertEquals(sum(1 for _ in items_generator), 0)
 
         user = UserFactory()
         valid_sql = 'select id from %s' % user_table()
-        items = execute_raw_user_query(valid_sql)
-        self.assertEquals(len(items), 2)
+        items_generator = execute_raw_user_query(valid_sql)
         self.assertSetEqual(
             set([self.user.id, user.id]),
-            set([i[0] for i in items])
+            set([i for i in items_generator])
         )
