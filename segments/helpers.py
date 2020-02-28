@@ -173,10 +173,13 @@ def execute_raw_user_query(sql):
     if sql is None or not type(sql) == str or 'select' not in sql.lower():
         return
 
-    with connections[app_settings.SEGMENTS_EXEC_CONNECTION].chunked_cursor() as cursor:
+    with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
         # Fetch the raw queryset of ids and count them
         logger.info('SEGMENTS user query running: %s' % sql)
         cursor.execute(sql)
 
-        for row in cursor:
-            yield row[0]
+        chunk = 1  # just need for 1st iteration
+        while chunk:
+            chunk = cursor.fetchmany(size=app_settings.SEGMENTS_CURSOR_FETCHMANY_SIZE)
+            for row in chunk:
+                yield row[0]
