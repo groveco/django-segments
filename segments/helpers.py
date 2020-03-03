@@ -85,7 +85,7 @@ class SegmentHelper(object):
 
         # Run the SQL query and store the latest set members
         self.run_pipeline(
-            iterable=(user_id for user_id in execute_raw_user_query(sql=sql) if user_id is not None),
+            iterable=(user_id for user_id in self.execute_raw_user_query(sql=sql) if user_id is not None),
             operation=lambda pipeline, user_id: pipeline.sadd(add_key, user_id)
         )
 
@@ -165,21 +165,31 @@ class SegmentHelper(object):
                     pipeline.execute()
             pipeline.execute()
 
+    def is_valid_member_id(self, value):
+        if isinstance(value, int):
+            return True
 
-def execute_raw_user_query(sql):
-    """
-    Helper that returns an array containing a RawQuerySet of user ids and their total count.
-    """
-    if sql is None or not type(sql) == str or 'select' not in sql.lower():
-        return
+        if isinstance(value, str) and value.isdigit():
+            return True
 
-    with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
-        # Fetch the raw queryset of ids and count them
-        logger.info('SEGMENTS user query running: %s' % sql)
-        cursor.execute(sql)
+        logger.info(f'SEGMENTS: {value} is not valid member id')
+        return False
 
-        chunk = 1  # just need for 1st iteration
-        while chunk:
-            chunk = cursor.fetchmany(size=app_settings.SEGMENTS_CURSOR_FETCHMANY_SIZE)
-            for row in chunk:
-                yield row[0]
+    def execute_raw_user_query(self, sql):
+        """
+        Helper that returns an array containing a RawQuerySet of user ids and their total count.
+        """
+        if sql is None or not type(sql) == str or 'select' not in sql.lower():
+            return
+
+        with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
+            # Fetch the raw queryset of ids and count them
+            logger.info('SEGMENTS user query running: %s' % sql)
+            cursor.execute(sql)
+
+            chunk = 1  # just need for 1st iteration
+            while chunk:
+                chunk = cursor.fetchmany(size=app_settings.SEGMENTS_CURSOR_FETCHMANY_SIZE)
+                for row in chunk:
+                    if self.is_valid_member_id(row[0]):
+                        yield row[0]

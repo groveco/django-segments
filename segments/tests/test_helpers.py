@@ -1,7 +1,7 @@
 import fakeredis
 from django.db.utils import OperationalError
 from django.test import TestCase
-from segments.helpers import SegmentHelper, execute_raw_user_query
+from segments.helpers import SegmentHelper
 from segments.models import Segment
 from segments.tests.factories import SegmentFactory, UserFactory, user_table
 from mock import patch
@@ -98,12 +98,12 @@ class TestSegmentHelper(TestCase):
             'any string that does not contain s.elect'
         ]
         for query in empty_queries:
-            items_generator = execute_raw_user_query(query)
+            items_generator = self.helper.execute_raw_user_query(query)
             self.assertEquals(sum(1 for _ in items_generator), 0)
 
         user = UserFactory()
         valid_sql = 'select id from %s' % user_table()
-        items_generator = execute_raw_user_query(valid_sql)
+        items_generator = self.helper.execute_raw_user_query(valid_sql)
         self.assertSetEqual(
             set([self.user.id, user.id]),
             set([i for i in items_generator])
