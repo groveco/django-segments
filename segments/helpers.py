@@ -2,6 +2,8 @@ import logging
 import redis
 
 from django.db import connections
+from django.db.models.query_utils import InvalidQuery
+
 from segments import app_settings
 
 logger = logging.getLogger(__name__)
@@ -179,8 +181,8 @@ class SegmentHelper(object):
         """
         Helper that returns an array containing a RawQuerySet of user ids and their total count.
         """
-        if sql is None or not type(sql) == str or 'select' not in sql.lower():
-            return
+        if sql is None or not isinstance(sql, str) or 'select' not in sql.lower():
+            raise InvalidQuery
 
         with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
             # Fetch the raw queryset of ids and count them
@@ -193,3 +195,5 @@ class SegmentHelper(object):
                 for row in chunk:
                     if self.is_valid_member_id(row[0]):
                         yield row[0]
+                    else:
+                        logger.exception(f'Query returned invalid result: {row[0]}')
