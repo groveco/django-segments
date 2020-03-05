@@ -1,31 +1,16 @@
 import logging
 
-from django.db import models, transaction, DatabaseError, OperationalError
-from django.core.exceptions import ValidationError
+from django.db import models, DatabaseError, OperationalError
 from django.db.models.query_utils import InvalidQuery
-from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import signals
 from django.utils import timezone
 from functools import wraps
 from segments import app_settings
+from segments.exceptions import SegmentExecutionError
 from segments.helpers import SegmentHelper
 
 logger = logging.getLogger(__name__)
-
-
-class SegmentExecutionError(Exception):
-    """
-    Any SQL issues encountered when Segments executing their SQL definitions will raise this exception.
-    """
-    pass
-
-
-class SegmentDefinitionUnescaped(Exception):
-    """
-    Raised when an unescaped percent sign is encountered
-    """
-    pass
 
 
 def live_sql(fn):
@@ -40,13 +25,17 @@ def live_sql(fn):
     def _wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
+
         except InvalidQuery:
             raise SegmentExecutionError('SQL definition must include the primary key of the %s model'
                                         % settings.AUTH_USER_MODEL)
+
         except (DatabaseError, OperationalError) as e:
             raise SegmentExecutionError('Error while executing SQL definition: %s' % e)
+
         except Exception as e:
             raise SegmentExecutionError(e)
+
     return _wrapper
 
 

@@ -1,5 +1,7 @@
+import factory
 import fakeredis
 from celery import Celery
+from django.db.models import signals
 from django.test import TestCase, override_settings
 
 from segments.helpers import SegmentHelper
@@ -37,9 +39,12 @@ class TestTasks(TestCase):
     @override_settings(SEGMENTS_REFRESH_ON_SAVE=False)
     def test_refresh_handles_bad_queries(self):
         user = UserFactory()
-        s1 = SegmentFactory(definition='fail')
-        s2 = SegmentFactory(definition='select %s from %s' % (user.pk, user_table()))
 
+        with factory.django.mute_signals(signals.post_save):
+            s1 = SegmentFactory(definition='fail')
+            s2 = SegmentFactory(definition='select %s from %s' % (user.pk, user_table()))
+
+        refresh_segments()
         self.assertListEqual(list(Segment.helper.get_segment_members(s1.id)), [])
         self.assertListEqual(list(Segment.helper.get_segment_members(s2.id)), [str(user.pk)])
 
@@ -55,8 +60,14 @@ class TestTasks(TestCase):
 
     # Just making sure the logging code works
     def test_refresh_non_existing_segment(self):
-        s = SegmentFactory()
-        refresh_segment(s.id + 1)  #bad ID
+        SegmentFactory(definition='SELECT 1;')
+        bad_id = Segment.objects.order_by('pk').last().pk + 1
+        with self.assertLogs(logger='segments.tasks', level='ERROR') as cm:
+            refresh_segment(bad_id)  #bad ID
+        self.assertIn(
+            'SEGMENTS: Unable to refresh segment id %s. DoesNotExist.' % bad_id,
+            cm.output[0],
+        )
 
     def test_delete_segment(self):
         user = UserFactory()

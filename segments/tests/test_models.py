@@ -1,10 +1,12 @@
+import factory
 import fakeredis
-import segments.helpers
-
+from django.db.models import signals
 from django.test import TestCase
+
+from segments.helpers import SegmentHelper
 from segments.tests.factories import SegmentFactory, UserFactory, user_table, AllUserSegmentFactory
 from segments import app_settings
-from segments.models import SegmentExecutionError
+from segments.models import SegmentExecutionError, Segment
 from mock import Mock, patch
 
 
@@ -13,9 +15,12 @@ class TestSegment(TestCase):
 
     def setUp(self):
         self.u = UserFactory()
-        segments.helpers.SegmentHelper.redis = fakeredis.FakeStrictRedis(
+        Segment.helper = SegmentHelper(
+            redis_obj=fakeredis.FakeStrictRedis(
                 charset='utf-8',
-                decode_responses=True)
+                decode_responses=True
+            )
+        )
 
     def test_basic_segment(self):
         s = AllUserSegmentFactory()
@@ -31,11 +36,6 @@ class TestSegment(TestCase):
         definition = 'select * from %s where id = %s' % (user_table(), self.u.id)
         s = SegmentFactory(definition=definition)
         s.refresh()
-        self.assertTrue(s.has_member(self.u))
-
-    def test_user_adds_to_segment(self):
-        s = SegmentFactory()
-        s.add_member(self.u)
         self.assertTrue(s.has_member(self.u))
 
     def test_user_doesnt_belong_to_segment(self):
@@ -126,9 +126,12 @@ class TestSegment(TestCase):
 class TestMixin(TestCase):
 
     def setUp(self):
-        segments.helpers.SegmentHelper.redis = fakeredis.FakeStrictRedis(
+        Segment.helper = SegmentHelper(
+            redis_obj=fakeredis.FakeStrictRedis(
                 charset='utf-8',
-                decode_responses=True)
+                decode_responses=True
+            )
+        )
         self.u = UserFactory()
         self.s = AllUserSegmentFactory()
         app_settings.SEGMENTS_REFRESH_ASYNC = False
