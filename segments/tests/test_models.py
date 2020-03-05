@@ -9,6 +9,7 @@ from mock import Mock, patch
 
 
 class TestSegment(TestCase):
+    databases = '__all__'
 
     def setUp(self):
         self.u = UserFactory()
