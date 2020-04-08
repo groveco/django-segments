@@ -70,13 +70,13 @@ class SegmentHelper(object):
     def get_refreshed_users(self):
         try:
             return self.redis.sscan_iter(self.segment_member_refresh_key)
-        except Exception as e:
+        except Exception:
             return None
 
     def remove_refreshed_user(self, user_id):
         try:
             self.redis.srem(self.segment_member_refresh_key, user_id)
-        except Exception as e:
+        except Exception:
             return None
 
     def refresh_segment(self, segment_id, sql):
@@ -91,56 +91,59 @@ class SegmentHelper(object):
             operation=lambda pipeline, user_id: pipeline.sadd(add_key, user_id)
         )
 
-        # Store any new member adds
-        self.redis.sdiffstore(
-            dest=new_key,
-            keys=[add_key, live_key]
-        )
+        try:
+            # Store any new member adds
+            self.redis.sdiffstore(
+                dest=new_key,
+                keys=[add_key, live_key]
+            )
 
-        # Store any member removals
-        self.redis.sdiffstore(
-            dest=del_key,
-            keys=[live_key, add_key]
-        )
+            # Store any member removals
+            self.redis.sdiffstore(
+                dest=del_key,
+                keys=[live_key, add_key]
+            )
 
-        # Sync the current set members to the live set
-        self.redis.sinterstore(
-            dest=live_key,
-            keys=[add_key]
-        )
+            # Sync the current set members to the live set
+            self.redis.sinterstore(
+                dest=live_key,
+                keys=[add_key]
+            )
 
-        # Sync the segment for new members
-        self.redis.sunionstore(
-            dest=self.segment_member_refresh_key,
-            keys=[self.segment_member_refresh_key, new_key]
-        )
+            # Sync the segment for new members
+            self.redis.sunionstore(
+                dest=self.segment_member_refresh_key,
+                keys=[self.segment_member_refresh_key, new_key]
+            )
 
-        # Add segment id to each member's sets
-        self.run_pipeline(
-            iterable=self.redis.sscan_iter(new_key, count=REDIS_SSCAN_COUNT),
-            operation=lambda pipeline, user_id: pipeline.sadd(self.segment_member_key % user_id, segment_id)
-        )
+            # Add segment id to each member's sets
+            self.run_pipeline(
+                iterable=self.redis.sscan_iter(new_key, count=REDIS_SSCAN_COUNT),
+                operation=lambda pipeline, user_id: pipeline.sadd(self.segment_member_key % user_id, segment_id)
+            )
 
-        # Sync the segment for deleted members
-        self.redis.sunionstore(
-            dest=self.segment_member_refresh_key,
-            keys=[self.segment_member_refresh_key, del_key]
-        )
+            # Sync the segment for deleted members
+            self.redis.sunionstore(
+                dest=self.segment_member_refresh_key,
+                keys=[self.segment_member_refresh_key, del_key]
+            )
 
-        # Remove segment id from member's sets
-        self.run_pipeline(
-            iterable=self.redis.sscan_iter(del_key, count=REDIS_SSCAN_COUNT),
-            operation=lambda pipeline, user_id: pipeline.srem(self.segment_member_key % user_id, segment_id)
-        )
+            # Remove segment id from member's sets
+            self.run_pipeline(
+                iterable=self.redis.sscan_iter(del_key, count=REDIS_SSCAN_COUNT),
+                operation=lambda pipeline, user_id: pipeline.srem(self.segment_member_key % user_id, segment_id)
+            )
+        except Exception as e:
+            logger.exception(f'SEGMENTS: refresh_segment({segment_id}, {sql}): {e}')
+        finally:
+            # Cleanup the sets
+            self.redis.delete(add_key, del_key, new_key)
 
-        # Cleanup the sets
-        self.redis.delete(add_key, del_key, new_key)
+            # Set a one week expire on the refresh queue in case it's not of interest to the consumer
+            self.redis.expire(self.segment_member_refresh_key, 604800)
 
-        # Set a one week expire on the refresh queue in case it's not of interest to the consumer
-        self.redis.expire(self.segment_member_refresh_key, 604800)
-
-        # Return the total number of members in this segment
-        return self.redis.scard(live_key)
+            # Return the total number of members in this segment
+            return self.redis.scard(live_key)
 
     def delete_segment(self, segment_id):
         segment_key = self.segment_key % segment_id
