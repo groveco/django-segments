@@ -51,10 +51,7 @@ class Segment(models.Model):
     priority = models.PositiveIntegerField(null=True, blank=True)
     members_count = models.PositiveIntegerField(null=True, blank=True, default=0)
     created_date = models.DateTimeField(auto_now_add=True)
-    # can make updated_date false and have it update only for certain fields manually OR https://stackoverflow.com/questions/7499767/temporarily-disable-auto-now-auto-now-add temporary hack
-    # but we should stick to auto_now for updated_date since that should have the last time of modified date
-    # another way to track failure is create segment log table to dump all logs to or datadog or create status/enums to check if it failed
-    updated_date = models.DateTimeField(null=True, blank=True, db_index=True, auto_now=True) 
+    updated_date = models.DateTimeField(null=True, blank=True, db_index=True, auto_now=True)
     recalculated_date = models.DateTimeField(null=True, blank=True)
 
     helper = SegmentHelper()
@@ -79,8 +76,6 @@ class Segment(models.Model):
 
     @live_sql
     def refresh(self):
-        # still need to track if it failed
-        # Segment.objects.select_for_update().filter(id=self.id).update(recalculated_date=timezone.now())
         members_count = self.helper.refresh_segment(self.id, self.definition)
         Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count, recalculated_date=timezone.now())
         self.refresh_from_db()

@@ -85,13 +85,13 @@ class SegmentHelper(object):
         new_key = 'new_s:%s:' % segment_id
         del_key = 'del_s:%s:' % segment_id
 
-        # Run the SQL query and store the latest set members
-        self.run_pipeline(
-            iterable=(user_id for user_id in self.execute_raw_user_query(sql=sql) if user_id is not None),
-            operation=lambda pipeline, user_id: pipeline.sadd(add_key, user_id)
-        )
-
         try:
+            # Run the SQL query and store the latest set members
+            self.run_pipeline(
+                iterable=(user_id for user_id in self.execute_raw_user_query(sql=sql) if user_id is not None),
+                operation=lambda pipeline, user_id: pipeline.sadd(add_key, user_id)
+            )
+
             # Store any new member adds
             self.redis.sdiffstore(
                 dest=new_key,
