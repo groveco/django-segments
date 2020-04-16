@@ -65,9 +65,11 @@ class TestSegmentHelper(TestCase):
         self.helper.remove_refreshed_user(self.user.id)
         self.assertEquals(len(list(self.helper.get_refreshed_users())), 0)
 
-    def test_refresh_segment_invalid_sql(self):
+    @patch('segments.helpers.logger')
+    def test_refresh_segment_invalid_sql(self, mock_logger):
         invalid_sql = 'abc select '
-        self.assertRaises(OperationalError, self.helper.refresh_segment, self.segment.id, invalid_sql)
+        self.assertEquals(self.helper.refresh_segment(self.segment.id, invalid_sql), 0)
+        mock_logger.exception.assert_called_with('SEGMENTS: refresh_segment(1, abc select ): near "abc": syntax error')
 
     def test_refresh_segment_valid_sql(self):
         valid_sql = 'select * from %s' % user_table()
