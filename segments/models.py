@@ -53,6 +53,7 @@ class Segment(models.Model):
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(null=True, blank=True, db_index=True, auto_now=True)
     recalculated_date = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
 
     helper = SegmentHelper()
 
@@ -140,7 +141,7 @@ class SegmentMixin(object):
     @property
     def segments(self):
         """Return all the segments to which this member belongs."""
-        return Segment.objects.filter(id__in=self.segment_ids).order_by('-priority')
+        return Segment.objects.filter(id__in=self.segment_ids, is_active=True).order_by('-priority')
 
     @property
     def segment_ids(self):
