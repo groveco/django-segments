@@ -141,6 +141,12 @@ class TestMixin(TestCase):
         self.assertEqual(self.u.segments.count(), 1)
         self.assertEqual(self.u.segments.first(), self.s)
 
+        AllUserSegmentFactory(is_active=False)
+        self.assertEqual(self.u.segments.count(), 1)
+
+        AllUserSegmentFactory()
+        self.assertEqual(self.u.segments.count(), 2)
+
     def test_is_member(self):
         self.assertTrue(self.u.is_member(self.s))
 

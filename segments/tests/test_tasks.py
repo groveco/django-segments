@@ -36,6 +36,18 @@ class TestTasks(TestCase):
 
         self.assertEqual(mocked_segment.call_count, 2)
 
+        s1.is_active = False
+        s1.save()
+        
+        refresh_segments()
+        self.assertEqual(mocked_segment.call_count, 2)
+
+        s1.is_active = True
+        s1.save()
+        
+        refresh_segments()
+        self.assertEqual(mocked_segment.call_count, 3)
+
     @override_settings(SEGMENTS_REFRESH_ON_SAVE=False)
     def test_refresh_handles_bad_queries(self):
         user = UserFactory()
