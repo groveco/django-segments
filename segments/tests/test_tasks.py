@@ -38,14 +38,16 @@ class TestTasks(TestCase):
 
         s1.is_active = False
         s1.save()
-        
         refresh_segments()
+
+        # should not refresh segment if not active
         self.assertEqual(mocked_segment.call_count, 2)
 
         s1.is_active = True
         s1.save()
-        
         refresh_segments()
+
+        # should refresh segment if active
         self.assertEqual(mocked_segment.call_count, 3)
 
     @override_settings(SEGMENTS_REFRESH_ON_SAVE=False)

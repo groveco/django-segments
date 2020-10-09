@@ -141,9 +141,11 @@ class TestMixin(TestCase):
         self.assertEqual(self.u.segments.count(), 1)
         self.assertEqual(self.u.segments.first(), self.s)
 
+        # create non active segment
         AllUserSegmentFactory(is_active=False)
         self.assertEqual(self.u.segments.count(), 1)
-
+        
+        # create active segment
         AllUserSegmentFactory()
         self.assertEqual(self.u.segments.count(), 2)
 
