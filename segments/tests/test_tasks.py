@@ -36,14 +36,14 @@ class TestTasks(TestCase):
 
         self.assertEqual(mocked_segment.call_count, 2)
 
-        s1.is_active = False
+        s1.is_deleted = False
         s1.save()
         refresh_segments()
 
         # should not refresh segment if not active
         self.assertEqual(mocked_segment.call_count, 2)
 
-        s1.is_active = True
+        s1.is_deleted = True
         s1.save()
         refresh_segments()
 

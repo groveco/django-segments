@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='segment',
-            name='is_active',
+            name='is_deleted',
             field=models.BooleanField(default=True),
         ),
     ]
