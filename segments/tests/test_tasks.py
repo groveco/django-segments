@@ -36,14 +36,14 @@ class TestTasks(TestCase):
 
         self.assertEqual(mocked_segment.call_count, 2)
 
-        s1.is_deleted = False
+        s1.is_deleted = True
         s1.save()
         refresh_segments()
 
         # should not refresh segment if not active
         self.assertEqual(mocked_segment.call_count, 2)
 
-        s1.is_deleted = True
+        s1.is_deleted = False
         s1.save()
         refresh_segments()
 
@@ -56,11 +56,13 @@ class TestTasks(TestCase):
 
         with factory.django.mute_signals(signals.post_save):
             s1 = SegmentFactory(definition='fail')
-            s2 = SegmentFactory(definition='select %s from %s' % (user.pk, user_table()))
+            s2 = SegmentFactory(definition='select %s from %s' % (user.pk, user_table()), is_deleted=False)
+            s3 = SegmentFactory(definition='select %s from %s' % (user.pk, user_table()), is_deleted=True)
 
         refresh_segments()
         self.assertListEqual(list(Segment.helper.get_segment_members(s1.id)), [])
         self.assertListEqual(list(Segment.helper.get_segment_members(s2.id)), [str(user.pk)])
+        self.assertListEqual(list(Segment.helper.get_segment_members(s2.id)), [])
 
     def test_refresh_existing_segment(self):
         segments.app_settings.SEGMENTS_REFRESH_ON_SAVE = True

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 @shared_task(queue=SEGMENTS_CELERY_QUEUE)
 def refresh_segments():
     """Celery task to refresh all segments."""
-    segments = list(Segment.objects.exclude(is_deleted=False))
+    segments = list(Segment.objects.exclude(is_deleted=True))
     for s in segments:
         try:
             refresh_segment.delay(s.id)
@@ -23,7 +23,7 @@ def refresh_segments():
 def refresh_segment(segment_id):
     """Celery task to refresh an individual Segment."""
     try:
-        s = Segment.objects.get(pk=segment_id)
+        s = Segment.objects.get(pk=segment_id, is_deleted=False)
         s.refresh()
     except Segment.DoesNotExist:
         logger.exception("SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id)
