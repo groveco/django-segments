@@ -62,7 +62,7 @@ class TestTasks(TestCase):
         refresh_segments()
         self.assertListEqual(list(Segment.helper.get_segment_members(s1.id)), [])
         self.assertListEqual(list(Segment.helper.get_segment_members(s2.id)), [str(user.pk)])
-        self.assertListEqual(list(Segment.helper.get_segment_members(s2.id)), [])
+        self.assertListEqual(list(Segment.helper.get_segment_members(s3.id)), [])
 
     def test_refresh_existing_segment(self):
         segments.app_settings.SEGMENTS_REFRESH_ON_SAVE = True
