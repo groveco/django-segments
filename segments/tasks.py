@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 @shared_task(queue=SEGMENTS_CELERY_QUEUE)
 def refresh_segments():
     """Celery task to refresh all segments."""
-    segments = list(Segment.objects.exclude(is_deleted=True))
+    segments = list(Segment.get_active_segments())
     for s in segments:
         try:
             refresh_segment.delay(s.id)

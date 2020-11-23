@@ -3,7 +3,7 @@ import logging
 from django.db import models, DatabaseError, OperationalError
 from django.db.models.query_utils import InvalidQuery
 from django.conf import settings
-from django.db.models import signals
+from django.db.models import Q, signals
 from django.utils import timezone
 from functools import wraps
 from segments import app_settings
@@ -80,6 +80,13 @@ class Segment(models.Model):
         members_count = self.helper.refresh_segment(self.id, self.definition)
         Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count, recalculated_date=timezone.now())
         self.refresh_from_db()
+
+    @classmethod
+    def get_active_segments(cls, segment_ids=None):
+        filter_qs = Q(is_deleted=False)
+        if segment_ids:
+            filter_qs = filter_qs & Q(id__in=segment_ids)
+        return Segment.objects.filter(filter_qs)
 
     def __len__(self):
         """Calling len() on a segment returns the number of members of that segment."""
