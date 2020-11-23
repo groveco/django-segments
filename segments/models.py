@@ -59,7 +59,7 @@ class Segment(models.Model):
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(null=True, blank=True, db_index=True, auto_now=True)
     recalculated_date = models.DateTimeField(null=True, blank=True)
-    is_deleted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(null=True, blank=True, default=False)
 
     helper = SegmentHelper()
     objects = SegmentManager()
@@ -88,16 +88,6 @@ class Segment(models.Model):
         members_count = self.helper.refresh_segment(self.id, self.definition)
         Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count, recalculated_date=timezone.now())
         self.refresh_from_db()
-
-    # @classmethod
-    # def get_active_segments(cls, segment_ids=None):
-    #     filter_qs = Q(is_deleted=False)
-    #     if segment_ids:
-    #         filter_qs = filter_qs & Q(id__in=segment_ids)
-    #     return Segment.objects.filter(filter_qs)
-
-    # def is_active(self):
-    #     return SegmentQuerySet().active()
 
     def __len__(self):
         """Calling len() on a segment returns the number of members of that segment."""
