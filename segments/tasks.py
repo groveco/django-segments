@@ -23,7 +23,7 @@ def refresh_segments():
 def refresh_segment(segment_id):
     """Celery task to refresh an individual Segment."""
     try:
-        s = Segment.objects.get(pk=segment_id, is_deleted=False)
+        s = Segment.objects.get(pk=segment_id)
         s.refresh()
     except Segment.DoesNotExist:
         logger.exception("SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id)

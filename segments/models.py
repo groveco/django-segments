@@ -3,7 +3,7 @@ import logging
 from django.db import models, DatabaseError, OperationalError
 from django.db.models.query_utils import InvalidQuery
 from django.conf import settings
-from django.db.models import Q, signals
+from django.db.models import signals
 from django.utils import timezone
 from functools import wraps
 from segments import app_settings
@@ -63,7 +63,6 @@ class Segment(models.Model):
 
     helper = SegmentHelper()
     objects = SegmentManager()
-    # objects = SegmentManager.from_queryset(SegmentManager)()
 
     ############
     # Public API
