@@ -9,6 +9,7 @@ from functools import wraps
 from segments import app_settings
 from segments.exceptions import SegmentExecutionError
 from segments.helpers import SegmentHelper
+from segments.querysets import SegmentQuerySet
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,11 @@ def live_sql(fn):
     return _wrapper
 
 
+class SegmentManager(models.Manager):
+    def get_queryset(self):
+        return SegmentQuerySet(self.model, using=self._db).acitve()
+
+
 class Segment(models.Model):
 
     """
@@ -56,6 +62,8 @@ class Segment(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     helper = SegmentHelper()
+    objects = SegmentManager()
+    # objects = SegmentManager.from_queryset(SegmentManager)()
 
     ############
     # Public API
@@ -81,12 +89,15 @@ class Segment(models.Model):
         Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count, recalculated_date=timezone.now())
         self.refresh_from_db()
 
-    @classmethod
-    def get_active_segments(cls, segment_ids=None):
-        filter_qs = Q(is_deleted=False)
-        if segment_ids:
-            filter_qs = filter_qs & Q(id__in=segment_ids)
-        return Segment.objects.filter(filter_qs)
+    # @classmethod
+    # def get_active_segments(cls, segment_ids=None):
+    #     filter_qs = Q(is_deleted=False)
+    #     if segment_ids:
+    #         filter_qs = filter_qs & Q(id__in=segment_ids)
+    #     return Segment.objects.filter(filter_qs)
+
+    # def is_active(self):
+    #     return SegmentQuerySet().active()
 
     def __len__(self):
         """Calling len() on a segment returns the number of members of that segment."""
