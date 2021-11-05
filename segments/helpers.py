@@ -131,7 +131,7 @@ class SegmentHelper(object):
 
             # Add segment id to each member's sets
             # sscan: O(1) for every call. O(N) for a complete iteration, including enough command calls for
-            # the cursor to return back to 0. N is the number of elements inside the collection..
+            # the cursor to return back to 0. N is the number of elements inside the collection.
             # so O(Ndiff) where Ndiff is the number of users new to the segment. not sure how many command calls to return cursor to 0.
             # Running total: 2E + 4U + R + 2Ndiff
 
@@ -155,7 +155,7 @@ class SegmentHelper(object):
 
             # Remove segment id from member's sets
             # sscan: O(1) for every call. O(N) for a complete iteration, including enough command calls for
-            # the cursor to return back to 0. N is the number of elements inside the collection..
+            # the cursor to return back to 0. N is the number of elements inside the collection.
             # so O(Ldiff), Ldiff is the number of users leaving the segment. not sure how many command calls to return cursor to 0.
             # Running total: 2E + 4U + 2R + 3Ndiff + 2Ldiff
 
