@@ -83,6 +83,15 @@ class SegmentHelper(object):
         except Exception:
             return None
 
+    """
+    O(N) is 2E + 4U + 2R + 3Ndiff + 3Ldiff
+    E is the number of customers in the existing segment
+    U is the number in the updated segment
+    R is the number of users in the refresh key (which gets flushed with segments_customer_sync_sentry)
+    Ndiff is the number of users NEW to the segment (in the updated segment but not the old segment)
+    Ldiff is the number of users LEAVING the segment (in the old segment but not the updated version)
+    """
+
     def refresh_segment(self, segment_id, sql):
         live_key = self.segment_key % segment_id
         add_key = "add_s:%s:" % segment_id
