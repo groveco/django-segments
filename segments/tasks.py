@@ -26,7 +26,9 @@ def refresh_segment(segment_id):
         s = Segment.objects.get(pk=segment_id)
         s.refresh()
     except Segment.DoesNotExist:
-        logger.exception("SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id)
+        logger.exception(
+            "SEGMENTS: Unable to refresh segment id %s. DoesNotExist.", segment_id
+        )
 
 
 @shared_task(queue=SEGMENTS_CELERY_QUEUE)

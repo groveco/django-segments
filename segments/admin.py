@@ -12,13 +12,27 @@ class SegmentAdmin(admin.ModelAdmin):
     """
 
     prepopulated_fields = {"slug": ("name",)}
-    list_display = ('name', 'priority', 'members_count')
-    readonly_fields = ('created_date', 'members_count', 'updated_date', 'recalculated_date')
-    readonly_on_edit_fields = ('slug',)
-    fields = ('name', 'slug', 'priority', 'members_count', 'definition', 'created_date', 'updated_date', 'recalculated_date')
-    ordering = ('name',)
+    list_display = ("name", "priority", "members_count")
+    readonly_fields = (
+        "created_date",
+        "members_count",
+        "updated_date",
+        "recalculated_date",
+    )
+    readonly_on_edit_fields = ("slug",)
+    fields = (
+        "name",
+        "slug",
+        "priority",
+        "members_count",
+        "definition",
+        "created_date",
+        "updated_date",
+        "recalculated_date",
+    )
+    ordering = ("name",)
 
-    actions = ('refresh',)
+    actions = ("refresh",)
 
     def refresh(self, request, queryset):
         for s in queryset:
@@ -26,10 +40,12 @@ class SegmentAdmin(admin.ModelAdmin):
                 refresh_segment.delay(s.id)
             else:
                 s.refresh()
-                self.message_user(request, 'Refreshed %s segments.' % len(queryset))
+                self.message_user(request, "Refreshed %s segments." % len(queryset))
 
     def save_model(self, request, obj, form, change):
-        if app_settings.SEGMENTS_REFRESH_ASYNC and (not change or app_settings.SEGMENTS_REFRESH_ON_SAVE):
+        if app_settings.SEGMENTS_REFRESH_ASYNC and (
+            not change or app_settings.SEGMENTS_REFRESH_ON_SAVE
+        ):
             messages.add_message(request, messages.INFO, "Segment refresh started...")
         return super(SegmentAdmin, self).save_model(request, obj, form, change)
 

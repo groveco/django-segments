@@ -25,7 +25,7 @@ class AllUserSegmentFactory(factory.DjangoModelFactory):
 
 
 class UserFactory(factory.DjangoModelFactory):
-    username = factory.Sequence(lambda n: 'name{0}'.format(n))
+    username = factory.Sequence(lambda n: "name{0}".format(n))
 
     class Meta:
         model = SegmentableUser
