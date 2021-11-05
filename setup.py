@@ -7,8 +7,10 @@ from segments import __version__
 # README file and 2) it's easier to type in the README file than to put a raw
 # string in below ...
 
+
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 
 setup(
     name="django-segments",
@@ -19,15 +21,12 @@ setup(
     license="MIT",
     keywords="django segments queries segmentation marketing groups sql",
     url="https://github.com/groveco/django-segments",
-    packages=['segments'],
-    long_description=read('readme.rst'),
+    packages=["segments"],
+    long_description=read("readme.rst"),
     classifiers=[
         "Topic :: Utilities",
     ],
-    install_requires=[
-        'Django>=1.11.6',
-        'redis>=2.10.5'
-    ],
+    install_requires=["Django>=1.11.6", "redis>=2.10.5"],
     include_package_data=True,
     zip_safe=False,
 )

@@ -21,17 +21,20 @@ def live_sql(fn):
     the execution doesn't necessarily fail when a RawQuerySet is created, but can happen much later in a function, when
     the results are reified. So we just wrap the whole darn function to capture any SQL errors.
     """
+
     @wraps(fn)
     def _wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
 
         except InvalidQuery:
-            raise SegmentExecutionError('SQL definition must include the primary key of the %s model'
-                                        % settings.AUTH_USER_MODEL)
+            raise SegmentExecutionError(
+                "SQL definition must include the primary key of the %s model"
+                % settings.AUTH_USER_MODEL
+            )
 
         except (DatabaseError, OperationalError) as e:
-            raise SegmentExecutionError('Error while executing SQL definition: %s' % e)
+            raise SegmentExecutionError("Error while executing SQL definition: %s" % e)
 
         except Exception as e:
             raise SegmentExecutionError(e)
@@ -47,11 +50,17 @@ class Segment(models.Model):
 
     name = models.CharField(max_length=128)
     slug = models.SlugField(max_length=256, null=True, blank=True, unique=True)
-    definition = models.TextField(help_text="SQL query returning IDs of users in the segment.", blank=True, null=True)
+    definition = models.TextField(
+        help_text="SQL query returning IDs of users in the segment.",
+        blank=True,
+        null=True,
+    )
     priority = models.PositiveIntegerField(null=True, blank=True)
     members_count = models.PositiveIntegerField(null=True, blank=True, default=0)
     created_date = models.DateTimeField(auto_now_add=True)
-    updated_date = models.DateTimeField(null=True, blank=True, db_index=True, auto_now=True)
+    updated_date = models.DateTimeField(
+        null=True, blank=True, db_index=True, auto_now=True
+    )
     recalculated_date = models.DateTimeField(null=True, blank=True)
 
     helper = SegmentHelper()
@@ -77,7 +86,9 @@ class Segment(models.Model):
     @live_sql
     def refresh(self):
         members_count = self.helper.refresh_segment(self.id, self.definition)
-        Segment.objects.select_for_update().filter(id=self.id).update(members_count=members_count, recalculated_date=timezone.now())
+        Segment.objects.select_for_update().filter(id=self.id).update(
+            members_count=members_count, recalculated_date=timezone.now()
+        )
         self.refresh_from_db()
 
     def __len__(self):
@@ -103,17 +114,23 @@ def do_refresh(sender, instance, created, **kwargs):
     every segment save.
     """
     from segments.tasks import refresh_segment
+
     if app_settings.SEGMENTS_REFRESH_ON_SAVE:
         if app_settings.SEGMENTS_REFRESH_ASYNC:
             refresh_segment.delay(instance.id)
         else:
             instance.refresh()
+
+
 signals.post_save.connect(do_refresh, sender=Segment)
 
 
 def do_delete(sender, instance, *args, **kwargs):
     from segments.tasks import delete_segment
+
     delete_segment.delay(instance.id)
+
+
 signals.post_delete.connect(do_delete, sender=Segment)
 
 
@@ -140,7 +157,7 @@ class SegmentMixin(object):
     @property
     def segments(self):
         """Return all the segments to which this member belongs."""
-        return Segment.objects.filter(id__in=self.segment_ids).order_by('-priority')
+        return Segment.objects.filter(id__in=self.segment_ids).order_by("-priority")
 
     @property
     def segment_ids(self):
