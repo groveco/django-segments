@@ -249,4 +249,4 @@ class SegmentHelper(object):
                     if self.is_valid_member_id(row[0]):
                         yield row[0]
                     else:
-                        logger.exception(f"Query returned invalid result: {row[0]}")
+                        logger.error(f"Invalid result for sql query:\n{sql}", stack_info=True, exc_info=True)
