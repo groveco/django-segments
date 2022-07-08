@@ -21,7 +21,7 @@ class TestSegment(TestCase):
     def setUp(self):
         self.u = UserFactory()
         Segment.helper = SegmentHelper(
-            redis_obj=fakeredis.FakeStrictRedis(charset="utf-8", decode_responses=True)
+            redis_obj=fakeredis.FakeStrictRedis(encoding="utf-8", decode_responses=True)
         )
 
     def test_basic_segment(self):
@@ -132,7 +132,7 @@ class TestSegment(TestCase):
 class TestMixin(TestCase):
     def setUp(self):
         Segment.helper = SegmentHelper(
-            redis_obj=fakeredis.FakeStrictRedis(charset="utf-8", decode_responses=True)
+            redis_obj=fakeredis.FakeStrictRedis(encoding="utf-8", decode_responses=True)
         )
         self.u = UserFactory()
         self.s = AllUserSegmentFactory()

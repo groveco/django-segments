@@ -24,7 +24,7 @@ test_celery_app.config_from_object("django.conf:settings", namespace="CELERY")
 class TestTasks(TestCase):
     def setUp(self):
         helper = SegmentHelper(
-            redis_obj=fakeredis.FakeStrictRedis(charset="utf-8", decode_responses=True)
+            redis_obj=fakeredis.FakeStrictRedis(encoding="utf-8", decode_responses=True)
         )
         Segment.helper = helper
         helper.redis.flushdb()

@@ -24,7 +24,7 @@ class SegmentHelper(object):
     def redis(self):
         if not self.__redis:
             self.__redis = redis.StrictRedis.from_url(
-                app_settings.SEGMENTS_REDIS_URI, charset="utf-8", decode_responses=True
+                app_settings.SEGMENTS_REDIS_URI, encoding="utf-8", decode_responses=True
             )
         return self.__redis
 
