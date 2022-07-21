@@ -124,6 +124,6 @@ class TestExecuteQuery(TestCase):
 
         self.assertEqual(len(cm.output), 3)
         for entry in cm.output:
-            self.assertIn("Query returned invalid result: ", entry)
+            self.assertIn("Invalid result for sql query:", entry)
 
         self.assertSetEqual(set(["1", "2", "4"]), results)

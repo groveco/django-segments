@@ -11,3 +11,4 @@
 .coverage
 /htmlcov/
 /docs/
+.python-version
