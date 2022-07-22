@@ -12,7 +12,7 @@ from mock import patch
 class TestSegmentHelper(TestCase):
     def setUp(self):
         self.helper = SegmentHelper(
-            redis_obj=fakeredis.FakeStrictRedis(charset="utf-8", decode_responses=True)
+            redis_obj=fakeredis.FakeStrictRedis(encoding="utf-8", decode_responses=True)
         )
 
         Segment.helper = self.helper
@@ -88,7 +88,7 @@ class TestSegmentHelper(TestCase):
 class TestExecuteQuery(TestCase):
     def setUp(self):
         self.helper = SegmentHelper(
-            redis_obj=fakeredis.FakeStrictRedis(charset="utf-8", decode_responses=True)
+            redis_obj=fakeredis.FakeStrictRedis(encoding="utf-8", decode_responses=True)
         )
 
         self.helper.redis.flushdb()
@@ -124,6 +124,6 @@ class TestExecuteQuery(TestCase):
 
         self.assertEqual(len(cm.output), 3)
         for entry in cm.output:
-            self.assertIn("Query returned invalid result: ", entry)
+            self.assertIn("Invalid result for sql query:", entry)
 
         self.assertSetEqual(set(["1", "2", "4"]), results)
