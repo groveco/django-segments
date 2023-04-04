@@ -43,7 +43,7 @@ class SegmentHelper(object):
         user_key = self.segment_member_key % user_id
         exists = False
         try:
-            exists = self.redis.sismember(user_key, segment_id)
+            exists = self.ro_redis.sismember(user_key, segment_id)
         except Exception as e:
             logger.exception(
                 "SEGMENTS: segment_has_member(%s, %s): %s" % (segment_id, user_id, e)
@@ -69,7 +69,7 @@ class SegmentHelper(object):
         user_key = self.segment_member_key % user_id
         items = []
         try:
-            items = self.redis.smembers(user_key)
+            items = self.ro_redis.smembers(user_key)
         except Exception as e:
             logger.exception("SEGMENTS: get_user_segments(%s): %s" % (user_id, e))
         return items
