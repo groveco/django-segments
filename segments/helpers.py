@@ -32,11 +32,14 @@ class SegmentHelper(object):
     @property
     def ro_redis(self):
         if not self.__ro_redis:
-            self.__ro_redis = redis.StrictRedis.from_url(
-                app_settings.SEGMENTS_RO_REDIS_URI,
-                encoding="utf-8",
-                decode_responses=True,
-            )
+            if app_settings.SEGMENTS_RO_REDIS_URI is None:
+                self.__ro_redis = self.redis
+            else:
+                self.__ro_redis = redis.StrictRedis.from_url(
+                    app_settings.SEGMENTS_RO_REDIS_URI,
+                    encoding="utf-8",
+                    decode_responses=True,
+                )
         return self.__ro_redis
 
     def segment_has_member(self, segment_id, user_id):
