@@ -17,8 +17,9 @@ class SegmentHelper(object):
     segment_member_key = "sm:%s"
     segment_member_refresh_key = "sm:refresh"
 
-    def __init__(self, redis_obj=None):
+    def __init__(self, redis_obj=None, ro_redis_obj=None):
         self.__redis = redis_obj
+        self.__ro_redis = ro_redis_obj
 
     @property
     def redis(self):
@@ -27,6 +28,16 @@ class SegmentHelper(object):
                 app_settings.SEGMENTS_REDIS_URI, encoding="utf-8", decode_responses=True
             )
         return self.__redis
+
+    @property
+    def ro_redis(self):
+        if not self.__ro_redis:
+            self.__ro_redis = redis.StrictRedis.from_url(
+                app_settings.SEGMENTS_RO_REDIS_URI,
+                encoding="utf-8",
+                decode_responses=True,
+            )
+        return self.__ro_redis
 
     def segment_has_member(self, segment_id, user_id):
         user_key = self.segment_member_key % user_id
@@ -249,4 +260,8 @@ class SegmentHelper(object):
                     if self.is_valid_member_id(row[0]):
                         yield row[0]
                     else:
-                        logger.error(f"Invalid result for sql query:\n{sql}", stack_info=True, exc_info=True)
+                        logger.error(
+                            f"Invalid result for sql query:\n{sql}",
+                            stack_info=True,
+                            exc_info=True,
+                        )
