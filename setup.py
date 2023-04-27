@@ -26,7 +26,7 @@ setup(
     classifiers=[
         "Topic :: Utilities",
     ],
-    install_requires=["Django==2.2.28", "redis==4.3.4"],
+    install_requires=["Django>=2.2.28", "redis==4.3.4"],
     include_package_data=True,
     zip_safe=False,
 )
