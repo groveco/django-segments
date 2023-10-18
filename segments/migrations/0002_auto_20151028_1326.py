@@ -14,11 +14,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='segment',
             name='static_ids',
-            field=models.TextField(help_text=b'Newline delimited list of static IDs to hold in the segment', null=True, blank=True),
+            field=models.TextField(help_text='Newline delimited list of static IDs to hold in the segment', null=True, blank=True),
         ),
         migrations.AlterField(
             model_name='segment',
             name='definition',
-            field=models.TextField(help_text=b'SQL query that returns IDs of users in the segment.', null=True, blank=True),
+            field=models.TextField(help_text='SQL query that returns IDs of users in the segment.', null=True, blank=True),
         ),
     ]

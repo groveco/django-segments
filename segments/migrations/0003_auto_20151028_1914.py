@@ -19,11 +19,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='segment',
             name='definition',
-            field=models.TextField(help_text=b'SQL query returning IDs of users in the segment.', null=True, blank=True),
+            field=models.TextField(help_text='SQL query returning IDs of users in the segment.', null=True, blank=True),
         ),
         migrations.AlterField(
             model_name='segment',
             name='static_ids',
-            field=models.TextField(help_text=b'Newline-delimited list of IDs in the segment', null=True, blank=True),
+            field=models.TextField(help_text='Newline-delimited list of IDs in the segment', null=True, blank=True),
         ),
     ]
