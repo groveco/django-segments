@@ -16,14 +16,14 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='segment',
             name='manager_method',
-            field=models.CharField(blank=True, help_text=b'Methoed to call on ContentType.model_class().manager_name',
+            field=models.CharField(blank=True, help_text='Methoed to call on ContentType.model_class().manager_name',
                                    max_length=128, null=True),
         ),
         migrations.AddField(
             model_name='segment',
             name='manager_name',
             field=models.CharField(default=b'objects',
-                                   help_text=b"If using manager_method, specify the name of the manager (usually 'objects')",
+                                   help_text="If using manager_method, specify the name of the manager (usually 'objects')",
                                    max_length=128),
         ),
     ]
