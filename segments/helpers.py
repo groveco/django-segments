@@ -2,7 +2,7 @@ import logging
 import redis
 
 from django.db import connections
-from django.db.models.query_utils import InvalidQuery
+from django.core.exceptions import FieldDoesNotExist
 
 from segments import app_settings
 
@@ -247,7 +247,7 @@ class SegmentHelper(object):
         Helper that returns an array containing a RawQuerySet of user ids and their total count.
         """
         if sql is None or not isinstance(sql, str) or "select" not in sql.lower():
-            raise InvalidQuery
+            raise FieldDoesNotExist
 
         with connections[app_settings.SEGMENTS_EXEC_CONNECTION].cursor() as cursor:
             # Fetch the raw queryset of ids and count them
