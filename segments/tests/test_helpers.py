@@ -1,5 +1,5 @@
 import fakeredis
-from django.db.models.query_utils import InvalidQuery
+from django.core.exceptions import FieldError
 from django.db.utils import OperationalError
 from django.test import TestCase
 
@@ -96,7 +96,7 @@ class TestExecuteQuery(TestCase):
     def test_invalid_raw_user_query_raises_exception(self):
         empty_queries = ["", None, 1, True, "any string that does not contain s.elect"]
         for query in empty_queries:
-            with self.assertRaises(InvalidQuery, msg=f'Passed query: "{query}"') as cm:
+            with self.assertRaises(FieldError, msg=f'Passed query: "{query}"') as cm:
                 generator = self.helper.execute_raw_user_query(query)
                 for _ in generator:
                     pass
