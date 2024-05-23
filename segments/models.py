@@ -1,7 +1,7 @@
 import logging
 
 from django.db import models, DatabaseError, OperationalError
-from django.db.models.query_utils import InvalidQuery
+from django.core.exceptions import FieldError
 from django.conf import settings
 from django.db.models import signals
 from django.utils import timezone
@@ -27,7 +27,7 @@ def live_sql(fn):
         try:
             return fn(*args, **kwargs)
 
-        except InvalidQuery:
+        except FieldError:
             raise SegmentExecutionError(
                 "SQL definition must include the primary key of the %s model"
                 % settings.AUTH_USER_MODEL
