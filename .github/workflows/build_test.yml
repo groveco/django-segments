@@ -18,7 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install pip==24.0
           pip install flake8
       - name: Lint with flake8
         # TODO: fix linting issues and remove --exit-zero flag
@@ -29,9 +29,9 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Install requirements
         run: |
-          pip install -r requirements.txt        
+          pip install -r requirements.txt
       - name: Install package
-        # TODO: update to latest packaging conventions 
+        # TODO: update to latest packaging conventions
         run: |
           pip install -e .
       - name: Run tests
